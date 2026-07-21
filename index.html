@@ -419,7 +419,7 @@ async function tryFetchPaperMetadata(link){
 
   infoEl.textContent = 'Looking up page details…';
   try{
-    const res = await fetch(`/.netlify/functions/fetch-meta?url=${encodeURIComponent(link)}`);
+    const res = await fetch(`/api/fetch-meta?url=${encodeURIComponent(link)}`);
     const json = await res.json();
     if(json.ok && json.title){
       if(!$('#p-title').value.trim()) $('#p-title').value = json.title;
@@ -847,7 +847,7 @@ window.markCalendarAdded = markCalendarAdded;
 
 
 async function getFreshAccessToken(){
-  const res = await fetch('/.netlify/functions/get-calendar-token');
+  const res = await fetch('/api/get-calendar-token');
   const data = await res.json();
   if(!data.access_token) throw new Error(data.error || 'Calendar not authorized — run the one-time setup');
   return data.access_token;
