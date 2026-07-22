@@ -26,6 +26,19 @@
   --mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 
+html[data-theme="light"]{
+  --bg: #f4efe4;
+  --bg-panel: #fbf8f0;
+  --bg-panel-raised: #ffffff;
+  --line: #d8cfba;
+  --paper: #3a3428;
+  --ink: #33301f;
+  --ink-dim: #6b6552;
+  --ink-faint: #9a9480;
+  --amber: #a37c1f;
+  --amber-dim: #a37c1f22;
+}
+
 *{box-sizing:border-box; margin:0; padding:0;}
 body{
   background: var(--bg);
@@ -42,6 +55,12 @@ body{
 @media (prefers-reduced-motion: reduce){ *{ animation: none !important; transition: none !important; } }
 
 .wrap{ max-width: 760px; margin: 0 auto; }
+.theme-footer{ display:flex; justify-content:center; padding: 30px 0 10px; }
+.theme-toggle-btn{
+  background: var(--bg-panel-raised); border:1px solid var(--line); color: var(--ink-dim);
+  font-family: var(--mono); font-size:11px; letter-spacing:.06em; padding:6px 16px; border-radius:20px; cursor:pointer;
+}
+.theme-toggle-btn:hover{ color: var(--amber); border-color: var(--amber); }
 
 /* setup screen */
 .setup{
@@ -119,19 +138,28 @@ select{ cursor: pointer; }
   letter-spacing: 0.1em; text-transform: uppercase; display:flex; align-items:center; gap:10px; margin-bottom: 12px;
   cursor: pointer;
 }
-.week-group{ margin-bottom: 8px; }
-.week-heading{
+.month-group{ margin-bottom: 8px; }
+.month-heading{
   font-family: var(--mono); font-size: 12px; color: var(--amber);
   letter-spacing: 0.12em; text-transform: uppercase; display:flex; align-items:center; gap:10px;
   margin: 26px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--amber-dim);
   cursor: pointer;
 }
-.week-group:first-child .week-heading{ margin-top: 0; }
+.month-group:first-child .month-heading{ margin-top: 0; }
 .group-count{
   font-family: var(--mono); font-size: 9.5px; color: var(--ink-faint); background: var(--bg-panel-raised);
   border-radius: 20px; padding: 1px 8px; margin-left: auto;
 }
-.week-heading .group-count{ color: #8a7635; background: #c9a24b22; }
+.month-heading .group-count{ color: #8a7635; background: #c9a24b22; }
+.milestone-divider{
+  display:flex; align-items:center; gap:14px; margin: 30px 0 10px;
+}
+.milestone-divider:first-child{ margin-top: 0; }
+.milestone-divider .line{ flex:1; height:1px; background: var(--amber-dim); }
+.milestone-divider-label{
+  font-family: var(--mono); font-size: 11px; letter-spacing:.08em; text-transform:uppercase; color: var(--amber);
+  white-space:nowrap;
+}
 
 .card{
   background: var(--paper); color: #24221c; border-radius: 2px; padding: 12px 16px 12px;
@@ -179,12 +207,6 @@ select{ cursor: pointer; }
 .verdict-chip[data-value="maybe"].active{ border-color:#8a7635; color:#8a7635; }
 .verdict-chip[data-value="alternate"].active{ border-color:#4a5b8a; color:#4a5b8a; }
 .verdict-chip[data-value="related-work"].active{ border-color:#6b6656; color:#6b6656; }
-.milestone-banner{
-  display:flex; align-items:center; gap:10px; width:fit-content; max-width:100%;
-  font-family: var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
-  color:#8a6d1a; border:1px dashed #c9a24b; border-radius:20px; padding:5px 14px; margin:16px 0 8px;
-}
-.milestone-banner .m-date{ color: var(--ink-faint); text-transform:none; letter-spacing:normal; }
 .card.verdict-accepted{ border-left: 3px solid #4f7043; }
 .card.verdict-rejected{ border-left: 3px solid #8a4a35; }
 .card.verdict-maybe{ border-left: 3px solid #8a7635; }
@@ -277,7 +299,7 @@ select{ cursor: pointer; }
   .stats{ gap: 12px; }
   .stat .num{ font-size: 16px; }
   .expand-controls{ margin-left: 0; width: 100%; justify-content: flex-end; }
-  .week-heading, .day-heading{ font-size: 10px; }
+  .month-heading, .day-heading{ font-size: 10px; }
   .card{ padding: 10px 12px 10px; }
   .entry-row-title{ font-size: 13.5px; }
   .composer-body{ padding: 14px 14px 12px; }
@@ -332,6 +354,9 @@ select{ cursor: pointer; }
 
 
 <div id="app"></div>
+<footer class="theme-footer">
+  <button id="theme-toggle-btn" class="theme-toggle-btn">☾ Dark</button>
+</footer>
 
 <script>
 const NEEDS_SETUP = window.__SUPABASE_URL__.includes('YOUR_') || window.__SUPABASE_ANON_KEY__.includes('YOUR_');
@@ -513,7 +538,7 @@ let editingId = null;
 let pendingCalEvents = [];
 let expandedIds = new Set();
 let collapsedDays = new Set();
-let collapsedWeeks = new Set();
+let collapsedMonths = new Set();
 let activeTagFilter = null;
 
 const $ = (sel) => document.querySelector(sel);
@@ -553,6 +578,24 @@ $('#search-box').addEventListener('input', (e) => {
   searchQuery = e.target.value.trim().toLowerCase();
   render();
 });
+
+(function initTheme(){
+  const saved = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+})();
+
+document.getElementById('theme-toggle-btn').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  updateThemeBtnLabel();
+});
+function updateThemeBtnLabel(){
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  document.getElementById('theme-toggle-btn').textContent = current === 'dark' ? '☾ Dark' : '☀ Light';
+}
+updateThemeBtnLabel();
 
 $('#s-milestone-check').addEventListener('change', (e) => {
   document.getElementById('s-milestone-label-row').style.display = e.target.checked ? 'flex' : 'none';
@@ -657,15 +700,13 @@ document.getElementById('verdict-select').addEventListener('change', (e) => {
 });
 
 document.getElementById('expand-all-btn').addEventListener('click', () => {
-  entries.forEach(e => expandedIds.add(e.id));
   collapsedDays.clear();
-  collapsedWeeks.clear();
+  collapsedMonths.clear();
   render();
 });
 document.getElementById('collapse-all-btn').addEventListener('click', () => {
-  expandedIds.clear();
   entries.forEach(e => { if(e.date) collapsedDays.add(e.date); });
-  entries.forEach(e => { if(e.date) collapsedWeeks.add(weekKeyAndLabel(e.date).key); });
+  entries.forEach(e => { if(e.date) collapsedMonths.add(e.date.slice(0,7)); });
   render();
 });
 
@@ -714,7 +755,7 @@ function jumpToEntry(id){
 
   if(target.date){
     collapsedDays.delete(target.date);
-    collapsedWeeks.delete(weekKeyAndLabel(target.date).key);
+    collapsedMonths.delete(target.date.slice(0,7));
   }
   expandedIds.add(target.id);
   render();
@@ -827,7 +868,7 @@ if(type === 'session'){
       expandedIds.add(data[0].id);
       if(data[0].date){
         collapsedDays.delete(data[0].date);
-        collapsedWeeks.delete(weekKeyAndLabel(data[0].date).key);
+        collapsedMonths.delete(data[0].date.slice(0,7));
       }
     }
     document.querySelectorAll('#form-' + type + ' input[type=text], #form-' + type + ' input[type=number], #form-' + type + ' input[type=time], #form-' + type + ' textarea').forEach(el => el.value = '');
@@ -962,10 +1003,6 @@ function linkedBadge(e){
   const label = t.type==='session' ? `Session · ${fmtDate(t.date)}` : t.type==='paper' ? `Paper · ${t.title}` : t.type==='decision' ? `Decision · ${t.decision}` : `Account · ${t.title}`;
   return `<div class="linked-jump" onclick="event.stopPropagation(); jumpToEntry('${t.id}')">↳ linked to ${escapeHtml(label)} →</div>`;
 }
-function milestoneBannerHtml(e){
-  return `<div class="milestone-banner">★ ${escapeHtml(e.milestone_label || 'Milestone')} <span class="m-date">${fmtDate(e.date)}</span></div>`;
-}
-
 function renderMilestoneStrip(){
   const strip = document.getElementById('milestone-strip');
   if(!strip) return;
@@ -1090,12 +1127,10 @@ function refreshLinkDropdowns(){
   });
 }
 
-function weekKeyAndLabel(dateStr){
-  const d = new Date(dateStr + 'T00:00:00');
-  const start = new Date(d); start.setDate(d.getDate() - d.getDay());
-  const end = new Date(start); end.setDate(start.getDate() + 6);
-  const fmt = (x) => x.toLocaleDateString('en-US', { month:'short', day:'numeric' });
-  return { key: start.toISOString().slice(0,10), label: `${fmt(start)} – ${fmt(end)}` };
+function monthKeyLabel(dateStr){
+  const key = dateStr.slice(0,7); // 'YYYY-MM'
+  const label = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month:'long', year:'numeric' });
+  return { key, label };
 }
 
 function render(){
@@ -1125,54 +1160,92 @@ function render(){
     ? `<div class="tag-filter-banner">Filtered by tag: <strong>${escapeHtml(activeTagFilter)}</strong><button onclick="clearTagFilter()">Clear ×</button></div>`
     : '';
 
-  const weekMap = {};
-  filtered.forEach(e => {
-    const dateKey = e.date || 'undated';
-    const wk = e.date ? weekKeyAndLabel(e.date) : { key: 'undated', label: 'Undated' };
-    if(!weekMap[wk.key]) weekMap[wk.key] = { label: wk.label, days: {} };
-    if(!weekMap[wk.key].days[dateKey]) weekMap[wk.key].days[dateKey] = [];
-    weekMap[wk.key].days[dateKey].push(e);
-  });
+  // Milestones only apply to sessions. Split the (already newest-first) list
+  // into segments each time a milestone entry is hit — that entry, plus every
+  // older entry after it, belongs to its segment, until the next milestone.
+  // Entries newer than the first milestone encountered sit in an unlabeled
+  // segment at the top (nothing achieved yet). Note: date/month collapse
+  // state is keyed by the plain date/month string, so if the same date ends
+  // up split across two segments (a milestone mid-day), both instances share
+  // one collapsed/expanded state — a rare edge case, not fully independent.
+  const useMilestoneSegments = (activeFilter === 'session' && !activeTagFilter);
+  let segments;
+  if(useMilestoneSegments){
+    segments = [];
+    let label = null;
+    let bucket = [];
+    filtered.forEach(e => {
+      if(e.is_milestone){
+        segments.push({ label, entries: bucket });
+        bucket = [];
+        label = e.milestone_label || 'Milestone';
+      }
+      bucket.push(e);
+    });
+    segments.push({ label, entries: bucket });
+    segments = segments.filter(s => s.entries.length > 0);
+  } else {
+    segments = [{ label: null, entries: filtered }];
+  }
 
-  const weekKeys = Object.keys(weekMap).sort().reverse();
+  const segmentsHtml = segments.map(seg => {
+    const monthMap = {};
+    seg.entries.forEach(e => {
+      const dateKey = e.date || 'undated';
+      const mKey = e.date ? monthKeyLabel(e.date).key : 'undated';
+      if(!monthMap[mKey]) monthMap[mKey] = {};
+      if(!monthMap[mKey][dateKey]) monthMap[mKey][dateKey] = [];
+      monthMap[mKey][dateKey].push(e);
+    });
+    const monthKeys = Object.keys(monthMap).sort().reverse();
 
-  timeline.innerHTML = tagBanner + weekKeys.map(wk => {
-    const week = weekMap[wk];
-    const dayKeys = Object.keys(week.days).sort().reverse();
-    const weekCount = dayKeys.reduce((sum, d) => sum + week.days[d].length, 0);
-    const weekCollapsed = collapsedWeeks.has(wk);
+    const monthsHtml = monthKeys.map(mk => {
+      const days = monthMap[mk];
+      const dayKeys = Object.keys(days).sort().reverse();
+      const monthCount = dayKeys.reduce((sum,d)=> sum + days[d].length, 0);
+      const monthCollapsed = collapsedMonths.has(mk);
+      const monthLabel = mk === 'undated' ? 'Undated' : monthKeyLabel(dayKeys[0]).label;
 
-    const daysHtml = dayKeys.map(dateKey => {
-      const dayEntries = week.days[dateKey];
-      const dayCollapsed = collapsedDays.has(dateKey);
+      const daysHtml = dayKeys.map(dateKey => {
+        const dayEntries = days[dateKey];
+        const dayCollapsed = collapsedDays.has(dateKey);
+        return `
+          <div class="day-group">
+            <div class="day-heading" onclick="toggleDay('${dateKey}')">
+              <span class="chevron">${dayCollapsed ? '▸' : '▾'}</span>
+              ${dateKey === 'undated' ? 'Undated' : fmtDate(dateKey)}
+              <span class="group-count">${dayEntries.length}</span>
+            </div>
+            ${dayCollapsed ? '' : dayEntries.map(e => cardHtml(e, expandedIds.has(e.id))).join('')}
+          </div>`;
+      }).join('');
+
       return `
-        <div class="day-group">
-          <div class="day-heading" onclick="toggleDay('${dateKey}')">
-            <span class="chevron">${dayCollapsed ? '▸' : '▾'}</span>
-            ${dateKey === 'undated' ? 'Undated' : fmtDate(dateKey)}
-            <span class="group-count">${dayEntries.length}</span>
+        <div class="month-group">
+          <div class="month-heading" onclick="toggleMonth('${mk}')">
+            <span class="chevron">${monthCollapsed ? '▸' : '▾'}</span>
+            ${monthLabel}
+            <span class="group-count">${monthCount}</span>
           </div>
-          ${dayCollapsed ? '' : dayEntries.map(e => (e.is_milestone ? milestoneBannerHtml(e) : '') + cardHtml(e, expandedIds.has(e.id))).join('')}
+          ${monthCollapsed ? '' : daysHtml}
         </div>`;
     }).join('');
 
-    return `
-      <div class="week-group">
-        <div class="week-heading" onclick="toggleWeek('${wk}')">
-          <span class="chevron">${weekCollapsed ? '▸' : '▾'}</span>
-          Week of ${week.label}
-          <span class="group-count">${weekCount}</span>
-        </div>
-        ${weekCollapsed ? '' : daysHtml}
-      </div>`;
+    const dividerHtml = seg.label
+      ? `<div class="milestone-divider"><span class="line"></span><span class="milestone-divider-label">★ ${escapeHtml(seg.label)}</span><span class="line"></span></div>`
+      : '';
+
+    return dividerHtml + monthsHtml;
   }).join('');
+
+  timeline.innerHTML = tagBanner + segmentsHtml;
 }
 
-function toggleWeek(key){
-  if(collapsedWeeks.has(key)) collapsedWeeks.delete(key); else collapsedWeeks.add(key);
+function toggleMonth(key){
+  if(collapsedMonths.has(key)) collapsedMonths.delete(key); else collapsedMonths.add(key);
   render();
 }
-window.toggleWeek = toggleWeek;
+window.toggleMonth = toggleMonth;
 
 function toggleDay(key){
   if(collapsedDays.has(key)) collapsedDays.delete(key); else collapsedDays.add(key);
@@ -1183,8 +1256,8 @@ window.toggleDay = toggleDay;
 function applyDefaultCollapse(){
   const allDates = [...new Set(entries.map(e => e.date).filter(Boolean))].sort().reverse();
   allDates.slice(1).forEach(d => collapsedDays.add(d));
-  const allWeeks = [...new Set(allDates.map(d => weekKeyAndLabel(d).key))].sort().reverse();
-  allWeeks.slice(1).forEach(w => collapsedWeeks.add(w));
+  const allMonths = [...new Set(allDates.map(d => d.slice(0,7)))].sort().reverse();
+  allMonths.slice(1).forEach(m => collapsedMonths.add(m));
 }
 
 function renderStats(){
