@@ -376,6 +376,7 @@ let activeFilter = 'session';
 let searchQuery = '';
 let loaded = false;
 let editingId = null;
+let pendingCalEvents = [];
 
 const $ = (sel) => document.querySelector(sel);
 const timeline = $('#timeline');
@@ -995,12 +996,14 @@ async function loadPendingCalendarEvents(){
     return;
   }
 
-  if(!data || data.length === 0){
+  pendingCalEvents = data || [];
+
+  if(pendingCalEvents.length === 0){
     list.innerHTML = '<div style="font-family:var(--sans); font-size:12.5px; color:var(--muted, #888); padding:4px 0;">No pending events right now.</div>';
     return;
   }
 
-  list.innerHTML = data.map(ev => {
+  list.innerHTML = pendingCalEvents.map(ev => {
     const start = ev.start_time ? new Date(ev.start_time).toLocaleString() : '(no start time)';
     const end = ev.end_time ? new Date(ev.end_time).toLocaleString() : '';
     return `
@@ -1016,10 +1019,30 @@ async function loadPendingCalendarEvents(){
 
 async function reviewCalendarEvent(id, action){
   try{
+    let body = { id, action };
+
+    if(action === 'approve'){
+      const ev = pendingCalEvents.find(x => x.id === id);
+      if(ev && ev.start_time){
+        const start = new Date(ev.start_time);
+        const pad = n => String(n).padStart(2, '0');
+        const localDate = `${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}`;
+        const localTime = `${pad(start.getHours())}:${pad(start.getMinutes())}`;
+        let duration = null;
+        if(ev.end_time){
+          const end = new Date(ev.end_time);
+          duration = Math.round((end - start) / 60000);
+        }
+        body.date = localDate;
+        body.time = localTime;
+        body.duration = duration;
+      }
+    }
+
     const res = await fetch('/api/review-calendar-event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, action })
+      body: JSON.stringify(body)
     });
     const data = await res.json();
     if(!data.ok){ showError('Could not ' + action + ' event: ' + (data.error || 'unknown error')); return; }
