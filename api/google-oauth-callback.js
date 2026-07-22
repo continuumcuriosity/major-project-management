@@ -56,9 +56,10 @@ export default async function handler(req, res) {
       body: JSON.stringify({ id: 1, refresh_token: tokenData.refresh_token })
     });
 
+
     if (!upsertRes.ok) {
       const errText = await upsertRes.text();
-      return res.status(500).send(`Got the refresh token but failed to save it to Supabase: ${errText}`);
+      return res.status(500).send(`Got the refresh token but failed to save it to Supabase: [status ${upsertRes.status}] ${errText || '(empty response body)'}`);
     }
 
     return res.status(200).send(
