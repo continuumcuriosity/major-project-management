@@ -265,7 +265,7 @@ document.getElementById('app').innerHTML = `
 
     <div id="error-slot"></div>
 
-    <div class="composer" id="pending-cal-panel" style="margin-bottom:14px; display:none;">
+    <div class="composer" id="pending-cal-panel" style="margin-bottom:14px;">
       <div class="type-tabs" style="justify-content:space-between; align-items:center;">
         <span style="font-family:var(--sans); font-size:13.5px; color:var(--ink);">Pending calendar events</span>
         <button class="btn-add" id="cal-check-btn" style="padding:6px 12px; font-size:12.5px;">Check for new events</button>
@@ -987,12 +987,10 @@ async function loadPendingCalendarEvents(){
   }
 
   if(!data || data.length === 0){
-    panel.style.display = 'none';
-    list.innerHTML = '';
+    list.innerHTML = '<div style="font-family:var(--sans); font-size:12.5px; color:var(--muted, #888); padding:4px 0;">No pending events right now.</div>';
     return;
   }
 
-  panel.style.display = 'block';
   list.innerHTML = data.map(ev => {
     const start = ev.start_time ? new Date(ev.start_time).toLocaleString() : '(no start time)';
     const end = ev.end_time ? new Date(ev.end_time).toLocaleString() : '';
