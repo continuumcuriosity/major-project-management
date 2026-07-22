@@ -221,6 +221,17 @@ select{ cursor: pointer; }
 .resolved-text{ text-decoration: line-through; color:var(--ink-faint); }
 .title-link{ color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 2px; }
 .title-link:hover{ color: #4a5b8a; text-decoration-color: #4a5b8a; }
+.link-suggest{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; align-items:center; }
+.link-suggest:empty{ margin-top:0; }
+.link-suggest-label{ font-family: var(--mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color: var(--ink-faint); }
+.link-suggest-chip{
+  background: var(--bg-panel-raised); border: 1px dashed var(--amber-dim); color: var(--ink-dim);
+  font-family: var(--sans); font-size: 11px; padding: 3px 10px; border-radius: 20px; cursor: pointer;
+}
+.link-suggest-chip:hover{ border-color: var(--amber); color: var(--amber); }
+.link-suggest-chip.active{ border-style: solid; border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+.downstream-block{ margin-top:10px; }
+.downstream-block .k{ display:block; font-family: var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.06em; color: var(--ink-faint); margin-bottom:4px; }
 .linked-jump{
   margin-top: 8px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-dim);
   cursor: pointer; text-decoration: underline dotted;
@@ -468,6 +479,11 @@ document.getElementById('app').innerHTML = `
         <div class="field-row">
           <div class="field"><label>Next step / open question</label><input type="text" id="s-next" placeholder="What's still unresolved going into next session"></div>
         </div>
+        <div class="field-row">
+          <div class="field"><label>Link to entry (optional)</label><select id="s-linked"><option value="">— none —</option></select>
+            <div class="link-suggest" id="s-link-suggest"></div>
+          </div>
+        </div>
         <div class="milestone-toggle-row">
           <label class="milestone-check"><input type="checkbox" id="s-milestone-check"> This session is a milestone</label>
         </div>
@@ -501,7 +517,9 @@ document.getElementById('app').innerHTML = `
         </div>
         <div class="field-row">
           <div class="field"><label>Tags (comma separated)</label><input type="text" id="p-tags" placeholder="e.g. dataset, SNN, baseline"></div>
-          <div class="field"><label>Link to entry (optional)</label><select id="p-linked"><option value="">— none —</option></select></div>
+          <div class="field"><label>Link to entry (optional)</label><select id="p-linked"><option value="">— none —</option></select>
+            <div class="link-suggest" id="p-link-suggest"></div>
+          </div>
         </div>
         <div class="composer-footer"><span class="save-msg" id="msg-paper"></span><button class="btn-add" data-add="paper">Log paper</button></div>
       </div>
@@ -513,7 +531,9 @@ document.getElementById('app').innerHTML = `
         <div class="field-row"><div class="field"><label>Alternatives considered</label><textarea id="d-alternatives" placeholder="What else was on the table, and why it lost out"></textarea></div></div>
         <div class="field-row">
           <div class="field"><label>Tags (comma separated)</label><input type="text" id="d-tags" placeholder="e.g. architecture, dataset"></div>
-          <div class="field"><label>Link to entry (optional)</label><select id="d-linked"><option value="">— none —</option></select></div>
+          <div class="field"><label>Link to entry (optional)</label><select id="d-linked"><option value="">— none —</option></select>
+            <div class="link-suggest" id="d-link-suggest"></div>
+          </div>
         </div>
         <div class="composer-footer"><span class="save-msg" id="msg-decision"></span><button class="btn-add" data-add="decision">Log decision</button></div>
       </div>
@@ -532,7 +552,9 @@ document.getElementById('app').innerHTML = `
         <p class="warn-note">Track logins here, not passwords — this table isn't a secrets vault. Keep the actual password in your regular password manager.</p>
         <div class="field-row">
           <div class="field"><label>Tags (comma separated)</label><input type="text" id="a-tags" placeholder="e.g. hosting, dataset-access"></div>
-          <div class="field"><label>Link to entry (optional)</label><select id="a-linked"><option value="">— none —</option></select></div>
+          <div class="field"><label>Link to entry (optional)</label><select id="a-linked"><option value="">— none —</option></select>
+            <div class="link-suggest" id="a-link-suggest"></div>
+          </div>
         </div>
         <div class="composer-footer"><span class="save-msg" id="msg-account"></span><button class="btn-add" data-add="account">Log account</button></div>
       </div>
@@ -644,7 +666,7 @@ $('#search-box').addEventListener('input', (e) => {
 });
 
 (function initTheme(){
-  const saved = localStorage.getItem('theme') || 'light';
+  const saved = localStorage.getItem('theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
 })();
 
@@ -731,6 +753,65 @@ document.getElementById('todo-toggle').addEventListener('click', () => {
 document.getElementById('todo-close').addEventListener('click', () => {
   document.getElementById('todo-panel').classList.remove('open');
 });
+
+function debounce(fn, ms){
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+const NON_TITLES = new Set(['(no summary)', '(untitled)', '(untitled decision)', '']);
+
+function scanForLinkMentions(text, prefix, excludeId){
+  const box = document.getElementById(prefix + '-link-suggest');
+  if(!box) return;
+  const trimmed = (text || '').trim();
+  if(trimmed.length < 4){ box.innerHTML = ''; return; }
+  const lower = trimmed.toLowerCase();
+  const matches = entries
+    .filter(e => e.id !== excludeId)
+    .map(e => ({ e, title: entryRowTitle(e) }))
+    .filter(({ title }) => !NON_TITLES.has(title) && title.length >= 4 && lower.includes(title.toLowerCase()))
+    .slice(0, 3);
+
+  if(matches.length === 0){ box.innerHTML = ''; return; }
+
+  const currentValue = document.getElementById(prefix + '-linked').value;
+  box.innerHTML = `<span class="link-suggest-label">Mentioned:</span>` + matches.map(({ e, title }) => {
+    const short = title.length > 28 ? title.slice(0, 26) + '…' : title;
+    const active = e.id === currentValue ? ' active' : '';
+    return `<button type="button" class="link-suggest-chip${active}" data-id="${e.id}">${escapeHtml(short)} → link</button>`;
+  }).join('');
+
+  box.querySelectorAll('.link-suggest-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const select = document.getElementById(prefix + '-linked');
+      select.value = (select.value === btn.dataset.id) ? '' : btn.dataset.id;
+      box.querySelectorAll('.link-suggest-chip').forEach(b => b.classList.toggle('active', b.dataset.id === select.value));
+    });
+  });
+}
+
+function refreshAllLinkSuggestions(){
+  scanForLinkMentions(($('#s-summary')?.value || '') + ' ' + ($('#s-next')?.value || ''), 's', editingId);
+  scanForLinkMentions($('#p-reason')?.value || '', 'p', editingId);
+  scanForLinkMentions(($('#d-rationale')?.value || '') + ' ' + ($('#d-alternatives')?.value || ''), 'd', editingId);
+  scanForLinkMentions($('#a-reason')?.value || '', 'a', editingId);
+}
+window.refreshAllLinkSuggestions = refreshAllLinkSuggestions;
+
+const scanSessionLinks = debounce(() => scanForLinkMentions($('#s-summary').value + ' ' + $('#s-next').value, 's', editingId), 300);
+$('#s-summary').addEventListener('input', scanSessionLinks);
+$('#s-next').addEventListener('input', scanSessionLinks);
+
+const scanPaperLinks = debounce(() => scanForLinkMentions($('#p-reason').value, 'p', editingId), 300);
+$('#p-reason').addEventListener('input', scanPaperLinks);
+
+const scanDecisionLinks = debounce(() => scanForLinkMentions($('#d-rationale').value + ' ' + $('#d-alternatives').value, 'd', editingId), 300);
+$('#d-rationale').addEventListener('input', scanDecisionLinks);
+$('#d-alternatives').addEventListener('input', scanDecisionLinks);
+
+const scanAccountLinks = debounce(() => scanForLinkMentions($('#a-reason').value, 'a', editingId), 300);
+$('#a-reason').addEventListener('input', scanAccountLinks);
 
 document.getElementById('graph-toggle').addEventListener('click', () => {
   document.getElementById('graph-modal').classList.add('open');
@@ -944,6 +1025,7 @@ if(type === 'session'){
         next_step: $('#s-next').value.trim(),
         is_milestone: $('#s-milestone-check').checked,
         milestone_label: $('#s-milestone-check').checked ? $('#s-milestone-label').value.trim() : null,
+        linked_id: $('#s-linked').value || null
       };
     }
     if(type === 'paper'){
@@ -1022,6 +1104,7 @@ if(type === 'session'){
     }
     document.querySelectorAll('#form-' + type + ' input[type=text], #form-' + type + ' input[type=number], #form-' + type + ' input[type=time], #form-' + type + ' textarea').forEach(el => el.value = '');
     document.querySelectorAll('#form-' + type + ' select[id$="-linked"]').forEach(el => el.value = '');
+    document.querySelectorAll('#form-' + type + ' .link-suggest').forEach(el => el.innerHTML = '');
     if(type === 'session'){
       $('#s-milestone-check').checked = false;
       document.getElementById('s-milestone-label-row').style.display = 'none';
@@ -1056,6 +1139,7 @@ function editEntry(id){
     $('#s-milestone-check').checked = !!e.is_milestone;
     document.getElementById('s-milestone-label-row').style.display = e.is_milestone ? 'flex' : 'none';
     $('#s-milestone-label').value = e.milestone_label || '';
+    $('#s-linked').value = e.linked_id || '';
   }
   if(e.type === 'paper'){
     $('#p-title').value = e.title || '';
@@ -1082,6 +1166,7 @@ function editEntry(id){
     $('#a-tags').value = (e.tags || []).join(', ');
     $('#a-linked').value = e.linked_id || '';
   }
+  refreshAllLinkSuggestions();
 
   const btn = document.querySelector(`.btn-add[data-add="${e.type}"]`);
   if(!btn.dataset.origLabel) btn.dataset.origLabel = btn.textContent;
@@ -1152,6 +1237,20 @@ function linkedBadge(e){
   const label = t.type==='session' ? `Session · ${fmtDate(t.date)}` : t.type==='paper' ? `Paper · ${t.title}` : t.type==='decision' ? `Decision · ${t.decision}` : `Account · ${t.title}`;
   return `<div class="linked-jump" onclick="event.stopPropagation(); jumpToEntry('${t.id}')">↳ linked to ${escapeHtml(label)} →</div>`;
 }
+function downstreamHtml(e){
+  const items = entries.filter(x => x.linked_id === e.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(items.length === 0) return '';
+  return `<div class="downstream-block">
+    <span class="k">Led to</span>
+    ${items.map(x => {
+      const label = x.type==='session' ? `Session · ${fmtDate(x.date)}${x.is_milestone ? ' · ★ Milestone' : ''}`
+        : x.type==='paper' ? `Paper · ${entryRowTitle(x)}`
+        : x.type==='decision' ? `Decision · ${entryRowTitle(x)}`
+        : `Account · ${entryRowTitle(x)}`;
+      return `<div class="linked-jump" onclick="event.stopPropagation(); jumpToEntry('${x.id}')">↳ ${escapeHtml(label)} →</div>`;
+    }).join('')}
+  </div>`;
+}
 function renderMilestoneStrip(){
   const strip = document.getElementById('milestone-strip');
   if(!strip) return;
@@ -1218,27 +1317,31 @@ function entryDetailHtml(e){
       ${e.calendar_added && e.calendar_event_link
         ? `<a class="cal-link cal-added" href="${escapeHtml(e.calendar_event_link)}" target="_blank" rel="noopener">✓ Synced to Calendar</a><button class="cal-link cal-btn" onclick="event.stopPropagation(); unlinkCalendarEvent('${e.id}')" style="margin-left:6px;">Unlink</button>`
         : `<button class="cal-link cal-btn" onclick="event.stopPropagation(); addToGoogleCalendar('${e.id}')">+ Add to Google Calendar</button>`}
-      ${linkedBadge(e)}`;
+      ${linkedBadge(e)}
+      ${downstreamHtml(e)}`;
   }
   if(e.type === 'paper'){
     return `
       ${e.reason ? `<div class="card-body">${escapeHtml(e.reason)}</div>` : ''}
       ${tagsHtml(e)}
-      ${linkedBadge(e)}`;
+      ${linkedBadge(e)}
+      ${downstreamHtml(e)}`;
   }
   if(e.type === 'decision'){
     return `
       ${e.rationale ? `<div class="card-body"><span class="k">Rationale</span>${escapeHtml(e.rationale)}</div>` : ''}
       ${e.alternatives ? `<div class="card-body"><span class="k">Alternatives considered</span>${escapeHtml(e.alternatives)}</div>` : ''}
       ${tagsHtml(e)}
-      ${linkedBadge(e)}`;
+      ${linkedBadge(e)}
+      ${downstreamHtml(e)}`;
   }
   if(e.type === 'account'){
     return `
       ${e.link ? `<a class="card-link" href="${escapeHtml(e.link)}" target="_blank" rel="noopener">${escapeHtml(e.link)}</a>` : ''}
       ${e.reason ? `<div class="card-body">${escapeHtml(e.reason)}</div>` : ''}
       ${tagsHtml(e)}
-      ${linkedBadge(e)}`;
+      ${linkedBadge(e)}
+      ${downstreamHtml(e)}`;
   }
   return '';
 }
@@ -1270,7 +1373,7 @@ function refreshLinkDropdowns(){
       : `Account · ${e.title}`;
     return `<option value="${e.id}">${escapeHtml(label)}</option>`;
   }).join('');
-  ['p-linked','d-linked','a-linked'].forEach(id=>{
+  ['s-linked','p-linked','d-linked','a-linked'].forEach(id=>{
     const el = document.getElementById(id);
     if(el){ const cur = el.value; el.innerHTML = '<option value="">— none —</option>' + options; el.value = cur; }
   });
