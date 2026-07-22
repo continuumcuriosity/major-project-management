@@ -175,6 +175,23 @@ select{ cursor: pointer; }
 .card.verdict-related-work{ border-left: 3px solid #6b6656; }
 .tag-dot{ color:#00000038; font-size:10px; margin: 0 1px; }
 .resolved-text{ text-decoration: line-through; color:#8a8368; }
+.title-link{ color: inherit; text-decoration: underline; text-decoration-color: #00000030; text-underline-offset: 2px; }
+.title-link:hover{ color: #4a5b8a; text-decoration-color: #4a5b8a; }
+.linked-jump{
+  margin-top: 8px; font-family: var(--mono); font-size: 10.5px; color: #6b6656;
+  cursor: pointer; text-decoration: underline dotted;
+}
+.linked-jump:hover{ color: #4a5b8a; }
+.tag-filter-banner{
+  display:flex; align-items:center; gap:10px; background: var(--bg-panel); border:1px solid var(--amber-dim);
+  border-radius: var(--radius); padding:10px 14px; margin-bottom:18px; font-family: var(--mono); font-size:11.5px; color: var(--ink-dim);
+}
+.tag-filter-banner button{ margin-left:auto; background:none; border:none; color: var(--amber); cursor:pointer; font-family: var(--mono); font-size:11px; text-transform:uppercase; }
+.flash-highlight{ animation: flashHighlight 1.5s ease; }
+@keyframes flashHighlight{
+  0%{ box-shadow: 0 0 0 3px var(--amber); }
+  100%{ box-shadow: 0 6px 18px -10px #00000066; }
+}
 
 .todo-toggle{
   position: fixed; left: 18px; top: 50%; transform: translateY(-50%);
@@ -252,7 +269,8 @@ select{ cursor: pointer; }
 .card-body + .card-body{ margin-top: 10px; }
 .card-body .k{ font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #837c67; display:block; margin-bottom: 2px;}
 .tags{ margin-top: 10px; display:flex; gap:6px; flex-wrap:wrap; }
-.tag{ font-family: var(--mono); font-size: 10px; background: #00000010; padding: 2px 7px; border-radius: 20px; color: #4a4636; }
+.tag{ font-family: var(--mono); font-size: 10px; background: #00000010; padding: 2px 7px; border-radius: 20px; color: #4a4636; cursor: pointer; }
+.tag:hover{ background: #c9a24b33; color: #6b4f1a; }
 .delete-btn{ background:none; border:none; color:#8a7c6688; cursor:pointer; font-size: 15px; line-height: 1; padding: 2px 4px; }
 .delete-btn:hover{ color:#8a4a35; }
 
@@ -453,6 +471,7 @@ let pendingCalEvents = [];
 let expandedIds = new Set();
 let collapsedDays = new Set();
 let collapsedWeeks = new Set();
+let activeTagFilter = null;
 
 const $ = (sel) => document.querySelector(sel);
 const timeline = $('#timeline');
@@ -590,6 +609,67 @@ document.getElementById('collapse-all-btn').addEventListener('click', () => {
   expandedIds.clear();
   render();
 });
+
+timeline.addEventListener('click', (ev) => {
+  const tagEl = ev.target.closest('.tag');
+  if(tagEl){
+    ev.stopPropagation();
+    filterByTag(tagEl.dataset.tag);
+  }
+});
+
+function filterByTag(tag){
+  activeTagFilter = tag;
+  searchQuery = '';
+  const sb = document.getElementById('search-box');
+  if(sb) sb.value = '';
+  render();
+}
+window.filterByTag = filterByTag;
+
+function clearTagFilter(){
+  activeTagFilter = null;
+  render();
+}
+window.clearTagFilter = clearTagFilter;
+
+function jumpToEntry(id){
+  const target = entries.find(e => e.id === id);
+  if(!target) return;
+
+  activeTagFilter = null;
+  searchQuery = '';
+  const sb = document.getElementById('search-box');
+  if(sb) sb.value = '';
+  activeFilter = target.type;
+  document.querySelectorAll('#type-filter-bar .chip').forEach(c => c.classList.toggle('active', c.dataset.filter === target.type));
+
+  const vbar = document.getElementById('verdict-filter-bar');
+  if(target.type === 'paper'){
+    vbar.style.display = 'flex';
+    activeVerdictFilter = 'all';
+    document.querySelectorAll('#verdict-filter-bar .chip').forEach(c => c.classList.toggle('active', c.dataset.vfilter === 'all'));
+  } else {
+    vbar.style.display = 'none';
+  }
+
+  if(target.date){
+    collapsedDays.delete(target.date);
+    collapsedWeeks.delete(weekKeyAndLabel(target.date).key);
+  }
+  expandedIds.add(target.id);
+  render();
+
+  setTimeout(() => {
+    const el = document.querySelector(`[data-entry-id="${target.id}"]`);
+    if(el){
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('flash-highlight');
+      setTimeout(() => el.classList.remove('flash-highlight'), 1500);
+    }
+  }, 50);
+}
+window.jumpToEntry = jumpToEntry;
 
 function toggleExpand(id){
   if(expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
@@ -812,10 +892,10 @@ function linkedBadge(e){
   const t = entries.find(x=>x.id===e.linked_id);
   if(!t) return '';
   const label = t.type==='session' ? `Session · ${fmtDate(t.date)}` : t.type==='paper' ? `Paper · ${t.title}` : t.type==='decision' ? `Decision · ${t.decision}` : `Account · ${t.title}`;
-  return `<div class="card-meta" style="margin-top:8px;">↳ linked to ${escapeHtml(label)}</div>`;
+  return `<div class="linked-jump" onclick="event.stopPropagation(); jumpToEntry('${t.id}')">↳ linked to ${escapeHtml(label)} →</div>`;
 }
 function tagsHtml(e){
-  return e.tags && e.tags.length ? `<div class="tags">${e.tags.map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('<span class="tag-dot">•</span>')}</div>` : '';
+  return e.tags && e.tags.length ? `<div class="tags">${e.tags.map(t=>`<span class="tag" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</span>`).join('<span class="tag-dot">•</span>')}</div>` : '';
 }
 
 function fmtTime(t){
@@ -835,6 +915,14 @@ function entryRowTitle(e){
   if(e.type === 'decision') return e.decision || '(untitled decision)';
   if(e.type === 'account') return e.title || '(untitled)';
   return '';
+}
+
+function entryRowTitleHtml(e){
+  const text = escapeHtml(entryRowTitle(e));
+  if(e.type === 'paper' && e.link){
+    return `<a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="title-link">${text}</a>`;
+  }
+  return text;
 }
 
 function entryStampHtml(e){
@@ -863,7 +951,6 @@ function entryDetailHtml(e){
   }
   if(e.type === 'paper'){
     return `
-      ${e.link ? `<a class="card-link" href="${escapeHtml(e.link)}" target="_blank" rel="noopener">${escapeHtml(e.link)}</a>` : ''}
       ${e.reason ? `<div class="card-body">${escapeHtml(e.reason)}</div>` : ''}
       ${tagsHtml(e)}
       ${linkedBadge(e)}`;
@@ -888,12 +975,12 @@ function entryDetailHtml(e){
 function cardHtml(e, isExpanded){
   const verdictClass = e.type === 'paper' ? `verdict-${e.verdict || 'none'}` : '';
   return `
-    <div class="card ${verdictClass}">
+    <div class="card ${verdictClass}" data-entry-id="${e.id}">
       <div class="entry-row" onclick="toggleExpand('${e.id}')">
         <span class="chevron">${isExpanded ? '▾' : '▸'}</span>
         <div class="entry-row-main">
           ${entryStampHtml(e)}
-          <span class="entry-row-title">${escapeHtml(entryRowTitle(e))}</span>
+          <span class="entry-row-title">${entryRowTitleHtml(e)}</span>
         </div>
         <div class="entry-row-actions" onclick="event.stopPropagation()">
           <button class="delete-btn" onclick="editEntry('${e.id}')" aria-label="Edit entry">✎</button>
@@ -931,16 +1018,25 @@ function render(){
   renderStats();
   renderTodo();
 
-  let filtered = searchQuery
-  ? entries.filter(e => entryText(e).toLowerCase().includes(searchQuery))
-  : entries.filter(e => e.type === activeFilter);
-  if(!searchQuery && activeFilter === 'paper' && activeVerdictFilter !== 'all'){
-    filtered = filtered.filter(e => e.verdict === activeVerdictFilter);
+  let filtered;
+  if(activeTagFilter){
+    filtered = entries.filter(e => (e.tags || []).includes(activeTagFilter));
+  } else if(searchQuery){
+    filtered = entries.filter(e => entryText(e).toLowerCase().includes(searchQuery));
+  } else {
+    filtered = entries.filter(e => e.type === activeFilter);
+    if(activeFilter === 'paper' && activeVerdictFilter !== 'all'){
+      filtered = filtered.filter(e => e.verdict === activeVerdictFilter);
+    }
   }
   if(filtered.length === 0){
     timeline.innerHTML = `<div class="empty-state"><div class="glyph">—</div><p>Nothing logged yet. Add a session, a paper verdict, or a decision above.</p></div>`;
     return;
   }
+
+  const tagBanner = activeTagFilter
+    ? `<div class="tag-filter-banner">Filtered by tag: <strong>${escapeHtml(activeTagFilter)}</strong><button onclick="clearTagFilter()">Clear ×</button></div>`
+    : '';
 
   const weekMap = {};
   filtered.forEach(e => {
@@ -953,7 +1049,7 @@ function render(){
 
   const weekKeys = Object.keys(weekMap).sort().reverse();
 
-  timeline.innerHTML = weekKeys.map(wk => {
+  timeline.innerHTML = tagBanner + weekKeys.map(wk => {
     const week = weekMap[wk];
     const dayKeys = Object.keys(week.days).sort().reverse();
     const weekCount = dayKeys.reduce((sum, d) => sum + week.days[d].length, 0);
