@@ -31,42 +31,46 @@ export default async function handler(req, res) {
         }
 
         if (action === 'approve') {
-            if (action === 'approve') {
-                // Compute duration in minutes from start/end if both are timestamps
-                let duration = null;
-                if (row.start_time && row.end_time) {
-                    const start = new Date(row.start_time);
-                    const end = new Date(row.end_time);
-                    const diffMs = end - start;
-                    if (!isNaN(diffMs) && diffMs > 0) {
-                        duration = Math.round(diffMs / 60000);
-                    }
+            let duration = null;
+            if (row.start_time && row.end_time) {
+                const start = new Date(row.start_time);
+                const end = new Date(row.end_time);
+                const diffMs = end - start;
+                if (!isNaN(diffMs) && diffMs > 0) {
+                    duration = Math.round(diffMs / 60000);
                 }
+            }
 
-                const insertRes = await fetch(`${process.env.SUPABASE_URL}/rest/v1/entries`, {
-                    method: 'POST',
-                    headers: {
-                        apikey: process.env.SUPABASE_SERVICE_KEY,
-                        Authorization: 'Bearer ' + process.env.SUPABASE_SERVICE_KEY,
-                        'Content-Type': 'application/json',
-                        Prefer: 'return=representation'
-                    },
-                    body: JSON.stringify({
-                        type: 'session',
-                        date: row.start_time ? row.start_time.split('T')[0] : null,
-                        time: row.start_time || null,
-                        duration,
-                        title: row.title,
-                        summary: row.description || null,
-                        calendar_added: true,
-                        calendar_event_id: `https://www.google.com/calendar/event?eid=${row.google_event_id}` // matches your existing convention
-                    })
-                });
+            // Reconstruct the Google Calendar event link the same way Google does:
+            // base64("<event_id> <calendar_email>")
+            const calendarEmail = process.env.GOOGLE_CALENDAR_EMAIL; // set this env var to your calendar's email
+            const eid = Buffer.from(`${row.google_event_id} ${calendarEmail}`).toString('base64');
+            const calendarEventLink = `https://www.google.com/calendar/event?eid=${eid}`;
 
-                if (!insertRes.ok) {
-                    const errText = await insertRes.text();
-                    return res.status(500).json({ error: `Failed to insert into entries: ${errText}` });
-                }
+            const insertRes = await fetch(`${process.env.SUPABASE_URL}/rest/v1/entries`, {
+                method: 'POST',
+                headers: {
+                    apikey: process.env.SUPABASE_SERVICE_KEY,
+                    Authorization: 'Bearer ' + process.env.SUPABASE_SERVICE_KEY,
+                    'Content-Type': 'application/json',
+                    Prefer: 'return=representation'
+                },
+                body: JSON.stringify({
+                    type: 'session',
+                    date: row.start_time ? row.start_time.split('T')[0] : null,
+                    time: row.start_time ? row.start_time.split('T')[1]?.slice(0, 5) : null, // "HH:MM" to match your existing "22:00" format
+                    duration,
+                    title: row.title,
+                    summary: row.description || null,
+                    calendar_added: true,
+                    calendar_event_link: calendarEventLink
+                    // calendar_event_id stays NULL, matching your existing rows
+                })
+            });
+
+            if (!insertRes.ok) {
+                const errText = await insertRes.text();
+                return res.status(500).json({ error: `Failed to insert into entries: ${errText}` });
             }
         }
 
