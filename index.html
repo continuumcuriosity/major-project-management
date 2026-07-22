@@ -265,6 +265,14 @@ document.getElementById('app').innerHTML = `
 
     <div id="error-slot"></div>
 
+    <div class="composer" id="pending-cal-panel" style="margin-bottom:14px; display:none;">
+      <div class="type-tabs" style="justify-content:space-between; align-items:center;">
+        <span style="font-family:var(--sans); font-size:13.5px; color:var(--ink);">Pending calendar events</span>
+        <button class="btn-add" id="cal-check-btn" style="padding:6px 12px; font-size:12.5px;">Check for new events</button>
+      </div>
+      <div id="pending-cal-list" style="padding:10px 4px 4px;"></div>
+    </div>
+
     <div class="composer">
       <div class="type-tabs">
         <button class="type-tab active" data-type="session">Session</button>
@@ -945,7 +953,79 @@ async function createCalendarEvent(e, token){
   }
 }
 
+async function checkForNewCalendarEvents(){
+  const btn = document.getElementById('cal-check-btn');
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  try{
+    const res = await fetch('/api/check-calendar-events');
+    const data = await res.json();
+    if(!data.ok){ showError('Calendar check failed: ' + (data.error || 'unknown error')); return; }
+    await loadPendingCalendarEvents();
+  } catch(err){
+    showError('Calendar check failed: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Check for new events';
+  }
+}
+document.getElementById('cal-check-btn').addEventListener('click', checkForNewCalendarEvents);
+
+async function loadPendingCalendarEvents(){
+  const { data, error } = await supabase
+    .from('calendar_review_queue')
+    .select('*')
+    .eq('status', 'pending')
+    .order('start_time', { ascending: true });
+
+  const panel = document.getElementById('pending-cal-panel');
+  const list = document.getElementById('pending-cal-list');
+
+  if(error){
+    showError('Could not load pending calendar events: ' + error.message);
+    return;
+  }
+
+  if(!data || data.length === 0){
+    panel.style.display = 'none';
+    list.innerHTML = '';
+    return;
+  }
+
+  panel.style.display = 'block';
+  list.innerHTML = data.map(ev => {
+    const start = ev.start_time ? new Date(ev.start_time).toLocaleString() : '(no start time)';
+    const end = ev.end_time ? new Date(ev.end_time).toLocaleString() : '';
+    return `
+      <div class="pending-cal-row" style="border:1px solid var(--line); border-radius:var(--radius); padding:10px; margin-bottom:8px;">
+        <div style="font-family:var(--sans); font-size:13.5px; color:var(--ink); font-weight:600;">${escapeHtml(ev.title || '(no title)')}</div>
+        <div style="font-family:var(--sans); font-size:12px; color:var(--muted, #888); margin:4px 0;">${escapeHtml(start)}${end ? ' → ' + escapeHtml(end) : ''}</div>
+        ${ev.description ? `<div style="font-family:var(--sans); font-size:12.5px; white-space:pre-wrap; margin-bottom:8px;">${escapeHtml(ev.description)}</div>` : ''}
+        <button class="cal-link cal-btn" onclick="reviewCalendarEvent('${ev.id}', 'approve')">✓ Approve → add as session</button>
+        <button class="cal-link cal-btn" onclick="reviewCalendarEvent('${ev.id}', 'reject')" style="margin-left:6px;">✕ Reject</button>
+      </div>`;
+  }).join('');
+}
+
+async function reviewCalendarEvent(id, action){
+  try{
+    const res = await fetch('/api/review-calendar-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action })
+    });
+    const data = await res.json();
+    if(!data.ok){ showError('Could not ' + action + ' event: ' + (data.error || 'unknown error')); return; }
+    await loadPendingCalendarEvents();
+    if(action === 'approve') await loadEntries(); // refresh Sessions tab to show the newly added entry
+  } catch(err){
+    showError('Could not ' + action + ' event: ' + err.message);
+  }
+}
+window.reviewCalendarEvent = reviewCalendarEvent;
+
 loadEntries();
+loadPendingCalendarEvents();
 }
 </script>
 </body>
