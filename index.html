@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Research Field Log</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -292,6 +293,43 @@ select{ cursor: pointer; }
 .todo-text.done{ text-decoration: line-through; color: var(--ink-faint); }
 .todo-empty{ padding: 20px 10px; text-align:center; color: var(--ink-faint); font-size:12px; }
 .todo-divider{ font-family: var(--mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; color: var(--ink-faint); padding: 10px 6px 6px; border-top:1px solid var(--line); margin-top:6px; }
+
+.graph-toggle{
+  position: fixed; right: 18px; top: 50%; transform: translateY(-50%);
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--bg-panel-raised); border: 1px solid var(--line); color: var(--amber);
+  font-family: var(--mono); font-size: 16px; cursor: pointer; z-index: 40;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 4px 14px -6px #00000088;
+}
+.graph-toggle:hover{ border-color: var(--amber); }
+.graph-modal{
+  position: fixed; inset:0; background: #00000099; z-index: 60;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none; transition: opacity .15s;
+}
+.graph-modal.open{ opacity:1; pointer-events:auto; }
+.graph-modal-inner{
+  width: min(920px, 94vw); height: min(640px, 86vh); background: var(--bg-panel);
+  border:1px solid var(--line); border-radius: var(--radius); display:flex; flex-direction:column; overflow:hidden;
+}
+.graph-header{ display:flex; align-items:center; gap:14px; padding:12px 16px; border-bottom:1px solid var(--line); font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-dim); flex-wrap:wrap; row-gap:8px; }
+.graph-legend{ display:flex; gap:12px; margin-left:auto; font-size:10px; text-transform:none; letter-spacing:0; flex-wrap:wrap; color: var(--ink-faint); }
+.graph-legend span{ display:flex; align-items:center; gap:5px; }
+.graph-legend .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+.graph-close{ background:none; border:none; color:var(--ink-faint); font-size:18px; cursor:pointer; line-height:1; }
+.graph-close:hover{ color: var(--amber); }
+#graph-svg-wrap{ flex:1; position:relative; }
+#graph-svg{ width:100%; height:100%; cursor: grab; display:block; }
+#graph-svg:active{ cursor: grabbing; }
+.graph-node circle{ stroke: var(--bg-panel); stroke-width:2px; cursor:pointer; }
+.graph-node text{ font-family: var(--mono); font-size:9px; fill: var(--ink-dim); pointer-events:none; }
+.graph-node:hover circle{ stroke: var(--amber); }
+.graph-link{ stroke: var(--line); stroke-width:1.5px; }
+.graph-empty{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-family:var(--sans); font-size:13px; text-align:center; padding:20px;}
+@media (max-width: 700px){
+  .graph-toggle{ right: 10px; }
+}
 @media (max-width: 700px){
   .todo-toggle{ left: 10px; }
   .todo-panel{ left: 58px; width: calc(100vw - 76px); }
@@ -529,6 +567,27 @@ document.getElementById('app').innerHTML = `
     <div class="todo-header">Open questions <button id="todo-close" class="todo-close" aria-label="Close">×</button></div>
     <div id="todo-list"></div>
   </div>
+
+  <button id="graph-toggle" class="graph-toggle" aria-label="Show connections graph">✳</button>
+  <div id="graph-modal" class="graph-modal">
+    <div class="graph-modal-inner">
+      <div class="graph-header">
+        Connections
+        <div class="graph-legend">
+          <span><span class="dot" style="background:#4a5b8a"></span>Session</span>
+          <span><span class="dot" style="background:#c9a24b"></span>Milestone</span>
+          <span><span class="dot" style="background:#4f7043"></span>Paper accepted</span>
+          <span><span class="dot" style="background:#8a4a35"></span>Paper rejected</span>
+          <span><span class="dot" style="background:#6b4a8a"></span>Decision</span>
+          <span><span class="dot" style="background:#3d6b73"></span>Account</span>
+        </div>
+        <button id="graph-close" class="graph-close" aria-label="Close">×</button>
+      </div>
+      <div id="graph-svg-wrap">
+        <svg id="graph-svg"></svg>
+      </div>
+    </div>
+  </div>
 `;
 
 const supabase = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
@@ -672,6 +731,87 @@ document.getElementById('todo-toggle').addEventListener('click', () => {
 document.getElementById('todo-close').addEventListener('click', () => {
   document.getElementById('todo-panel').classList.remove('open');
 });
+
+document.getElementById('graph-toggle').addEventListener('click', () => {
+  document.getElementById('graph-modal').classList.add('open');
+  renderGraph();
+});
+document.getElementById('graph-close').addEventListener('click', () => {
+  document.getElementById('graph-modal').classList.remove('open');
+});
+document.getElementById('graph-modal').addEventListener('click', (ev) => {
+  if(ev.target.id === 'graph-modal') document.getElementById('graph-modal').classList.remove('open');
+});
+
+function graphNodeColor(e){
+  if(e.type === 'session') return e.is_milestone ? '#c9a24b' : '#4a5b8a';
+  if(e.type === 'paper'){
+    return e.verdict === 'accepted' ? '#4f7043'
+      : e.verdict === 'rejected' ? '#8a4a35'
+      : e.verdict === 'alternate' ? '#4a5b8a'
+      : e.verdict === 'related-work' ? '#6b6656'
+      : '#8a7635';
+  }
+  if(e.type === 'decision') return '#6b4a8a';
+  if(e.type === 'account') return '#3d6b73';
+  return '#888';
+}
+
+function graphNodeLabel(e){
+  const t = entryRowTitle(e);
+  return t.length > 26 ? t.slice(0, 24) + '…' : t;
+}
+
+let graphSim = null;
+function renderGraph(){
+  const svg = d3.select('#graph-svg');
+  svg.selectAll('*').remove();
+  const wrapEl = document.getElementById('graph-svg-wrap');
+  const width = wrapEl.clientWidth || 800;
+  const height = wrapEl.clientHeight || 500;
+  svg.attr('viewBox', `0 0 ${width} ${height}`);
+
+  if(entries.length === 0){
+    d3.select('#graph-svg-wrap').append('div').attr('class', 'graph-empty').text('Nothing logged yet — the graph fills in as you add sessions, papers, and decisions.');
+    return;
+  }
+
+  const nodes = entries.map(e => ({ id: e.id, entry: e }));
+  const nodeIds = new Set(nodes.map(n => n.id));
+  const links = entries.filter(e => e.linked_id && nodeIds.has(e.linked_id))
+    .map(e => ({ source: e.id, target: e.linked_id }));
+
+  const g = svg.append('g');
+  svg.call(d3.zoom().scaleExtent([0.4, 3]).on('zoom', (ev) => g.attr('transform', ev.transform)));
+
+  if(graphSim) graphSim.stop();
+  graphSim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(90).strength(0.6))
+    .force('charge', d3.forceManyBody().strength(-170))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collide', d3.forceCollide(32));
+
+  const link = g.selectAll('.graph-link').data(links).enter().append('line').attr('class', 'graph-link');
+
+  const node = g.selectAll('.graph-node').data(nodes).enter().append('g')
+    .attr('class', 'graph-node')
+    .call(d3.drag()
+      .on('start', (ev, d) => { if(!ev.active) graphSim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on('drag', (ev, d) => { d.fx = ev.x; d.fy = ev.y; })
+      .on('end', (ev, d) => { if(!ev.active) graphSim.alphaTarget(0); d.fx = null; d.fy = null; }))
+    .on('click', (ev, d) => {
+      document.getElementById('graph-modal').classList.remove('open');
+      jumpToEntry(d.id);
+    });
+
+  node.append('circle').attr('r', d => d.entry.is_milestone ? 10 : 7).attr('fill', d => graphNodeColor(d.entry));
+  node.append('text').attr('x', 11).attr('y', 4).text(d => graphNodeLabel(d.entry));
+
+  graphSim.on('tick', () => {
+    link.attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    node.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+}
 
 document.querySelectorAll('#type-filter-bar > .chip').forEach(chip => {
   chip.addEventListener('click', () => {
