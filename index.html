@@ -25,21 +25,6 @@
   --sans: 'Inter', -apple-system, sans-serif;
   --mono: 'JetBrains Mono', 'Courier New', monospace;
 
-  /* card is a physical "paper" element with its own ink that must always
-     contrast with --paper, independent of the page theme */
-  --card-ink: #24221c;
-  --card-ink-dim: #6b6656;
-  --card-ink-faint: #8a8368;
-  --card-body: #3a362c;
-  --card-k: #837c67;
-  --card-tag-bg: #00000010;
-  --card-tag-hover-bg: #c9a24b33;
-  --card-tag-ink: #4a4636;
-  --card-tag-hover-ink: #6b4f1a;
-  --card-line: #00000020;
-  --card-dot: #00000038;
-  --card-underline: #00000030;
-  --card-delete: #8a7c6688;
 }
 
 html[data-theme="light"]{
@@ -53,21 +38,6 @@ html[data-theme="light"]{
   --ink-faint: #9a9480;
   --amber: #a37c1f;
   --amber-dim: #a37c1f22;
-
-  /* card paper flips to dark here, so its ink flips to light */
-  --card-ink: #ede6d6;
-  --card-ink-dim: #c9c2ae;
-  --card-ink-faint: #a89d84;
-  --card-body: #ddd4bf;
-  --card-k: #b0a48c;
-  --card-tag-bg: #ffffff14;
-  --card-tag-hover-bg: #c9a24b33;
-  --card-tag-hover-ink: #ecd9a8;
-  --card-tag-ink: #e8dcc0;
-  --card-line: #ffffff22;
-  --card-dot: #ffffff33;
-  --card-underline: #ffffff33;
-  --card-delete: #cfc6ae88;
 }
 
 *{box-sizing:border-box; margin:0; padding:0;}
@@ -200,18 +170,17 @@ select{ cursor: pointer; }
 }
 
 .card{
-  background: var(--paper); color: var(--card-ink); border-radius: 2px; padding: 12px 16px 12px;
-  margin-bottom: 8px; position: relative; box-shadow: 0 6px 18px -10px #00000066;
-  transform: rotate(var(--tilt, 0deg));
+  background: var(--bg-panel); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 16px 12px; margin-bottom: 8px; position: relative;
 }
 .entry-row{ display:flex; align-items:flex-start; gap:10px; cursor:pointer; }
 .entry-row-main{ flex:1; min-width:0; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
-.entry-row-title{ font-family: var(--serif); font-size: 14.5px; line-height:1.35; color:var(--card-ink); }
-.entry-row-meta{ font-family: var(--mono); font-size: 10px; color:var(--card-ink-dim); white-space:nowrap; }
+.entry-row-title{ font-family: var(--serif); font-size: 14.5px; line-height:1.35; color:var(--ink); }
+.entry-row-meta{ font-family: var(--mono); font-size: 10px; color:var(--ink-dim); white-space:nowrap; }
 .entry-row-actions{ display:flex; gap:2px; flex-shrink:0; }
 .chevron{ font-family: var(--mono); font-size: 10px; color:var(--ink-faint); flex-shrink:0; width:12px; text-align:center; margin-top:3px; user-select:none; }
-.entry-row .chevron{ color: var(--card-ink-faint); }
-.entry-detail{ margin-top:10px; padding-top:10px; border-top:1px dashed var(--card-line); }
+.entry-row .chevron{ color: var(--ink-faint); }
+.entry-detail{ margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); }
 .expand-controls{ display:flex; gap:12px; margin-left:auto; }
 .expand-controls button{
   background:none; border:none; color: var(--ink-faint); font-family: var(--mono); font-size:10.5px;
@@ -223,9 +192,6 @@ select{ cursor: pointer; }
 .verdict-filter-chips{ display:flex; gap:6px; flex-wrap:wrap; }
 .verdict-filter-chips .chip{ font-size:10px; padding:3px 10px; }
 .verdict-filter-chips .chip[data-value="all"].active{ border-color: var(--amber); color: var(--amber); }
-.card:nth-child(3n+1){ --tilt: -0.2deg; }
-.card:nth-child(3n+2){ --tilt: 0.15deg; }
-
 .card-top{ display:flex; justify-content: space-between; align-items:flex-start; margin-bottom: 8px; gap: 10px;}
 .stamp{ font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; padding: 2px 7px; border-radius: 2px; text-transform: uppercase; border: 1px solid currentColor; }
 .stamp.session{ color: #4a5b8a; }
@@ -250,12 +216,12 @@ select{ cursor: pointer; }
 .card.verdict-maybe{ border-left: 3px solid #8a7635; }
 .card.verdict-alternate{ border-left: 3px solid #4a5b8a; }
 .card.verdict-related-work{ border-left: 3px solid #6b6656; }
-.tag-dot{ color:var(--card-dot); font-size:10px; margin: 0 1px; }
-.resolved-text{ text-decoration: line-through; color:var(--card-ink-faint); }
-.title-link{ color: inherit; text-decoration: underline; text-decoration-color: var(--card-underline); text-underline-offset: 2px; }
+.tag-dot{ color:var(--ink-faint); font-size:10px; margin: 0 1px; }
+.resolved-text{ text-decoration: line-through; color:var(--ink-faint); }
+.title-link{ color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 2px; }
 .title-link:hover{ color: #4a5b8a; text-decoration-color: #4a5b8a; }
 .linked-jump{
-  margin-top: 8px; font-family: var(--mono); font-size: 10.5px; color: var(--card-ink-dim);
+  margin-top: 8px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-dim);
   cursor: pointer; text-decoration: underline dotted;
 }
 .linked-jump:hover{ color: #4a5b8a; }
@@ -285,7 +251,7 @@ select{ cursor: pointer; }
 .flash-highlight{ animation: flashHighlight 1.5s ease; }
 @keyframes flashHighlight{
   0%{ box-shadow: 0 0 0 3px var(--amber); }
-  100%{ box-shadow: 0 6px 18px -10px #00000066; }
+  100%{ box-shadow: none; }
 }
 
 .todo-toggle{
@@ -356,17 +322,17 @@ select{ cursor: pointer; }
 .stamp.decision{ color: #6b4a8a; }
 .stamp.account{ color: #3d6b73; }
 .warn-note{ font-size: 11.5px; color: var(--ink-faint); margin-top: -4px; margin-bottom: 10px; line-height: 1.5; }
-.card-meta{ font-family: var(--mono); font-size: 10.5px; color: var(--card-ink-dim); }
-.card-title{ font-family: var(--serif); font-size: 16.5px; font-weight: 500; margin-bottom: 5px; line-height: 1.3; color: var(--card-ink);}
-.card-link{ font-size: 11.5px; color: var(--card-ink-dim); text-decoration: none; word-break: break-all; }
+.card-meta{ font-family: var(--mono); font-size: 10.5px; color: var(--ink-dim); }
+.card-title{ font-family: var(--serif); font-size: 16.5px; font-weight: 500; margin-bottom: 5px; line-height: 1.3; color: var(--ink);}
+.card-link{ font-size: 11.5px; color: var(--ink-dim); text-decoration: none; word-break: break-all; }
 .card-link:hover{ text-decoration: underline; }
-.card-body{ font-size: 13.5px; line-height: 1.55; color: var(--card-body); margin-top: 6px; }
+.card-body{ font-size: 13.5px; line-height: 1.55; color: var(--ink-dim); margin-top: 6px; }
 .card-body + .card-body{ margin-top: 10px; }
-.card-body .k{ font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--card-k); display:block; margin-bottom: 2px;}
+.card-body .k{ font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-faint); display:block; margin-bottom: 2px;}
 .tags{ margin-top: 10px; display:flex; gap:6px; flex-wrap:wrap; }
-.tag{ font-family: var(--mono); font-size: 10px; background: var(--card-tag-bg); padding: 2px 7px; border-radius: 20px; color: var(--card-tag-ink); cursor: pointer; }
-.tag:hover{ background: var(--card-tag-hover-bg); color: var(--card-tag-hover-ink); }
-.delete-btn{ background:none; border:none; color:var(--card-delete); cursor:pointer; font-size: 15px; line-height: 1; padding: 2px 4px; }
+.tag{ font-family: var(--mono); font-size: 10px; background: var(--bg-panel-raised); padding: 2px 7px; border-radius: 20px; color: var(--ink-dim); cursor: pointer; }
+.tag:hover{ background: var(--amber-dim); color: var(--amber); }
+.delete-btn{ background:none; border:none; color:var(--ink-faint); cursor:pointer; font-size: 15px; line-height: 1; padding: 2px 4px; }
 .delete-btn:hover{ color:#8a4a35; }
 
 .empty-state{ text-align:center; padding: 60px 20px; color: var(--ink-faint); }
@@ -1074,7 +1040,7 @@ function escapeHtml(s){
 }
 
 function entryRowTitle(e){
-  if(e.type === 'session') return (e.is_milestone && e.milestone_label) ? e.milestone_label : (e.summary || '(no summary)');
+  if(e.type === 'session') return e.summary || '(no summary)';
   if(e.type === 'paper') return e.title || '(untitled)';
   if(e.type === 'decision') return e.decision || '(untitled decision)';
   if(e.type === 'account') return e.title || '(untitled)';
@@ -1205,7 +1171,10 @@ function render(){
     }
   }
   if(filtered.length === 0){
-    timeline.innerHTML = `<div class="empty-state"><div class="glyph">—</div><p>Nothing logged yet. Add a session, a paper verdict, or a decision above.</p></div>`;
+    const isFiltering = !!searchQuery || !!activeTagFilter || (activeFilter === 'paper' && activeVerdictFilter !== 'all');
+    timeline.innerHTML = isFiltering
+      ? `<div class="empty-state"><div class="glyph">—</div><p>No results found.</p></div>`
+      : `<div class="empty-state"><div class="glyph">—</div><p>Nothing logged yet. Add a session, a paper verdict, or a decision above.</p></div>`;
     return;
   }
 
