@@ -105,7 +105,7 @@ select{ cursor: pointer; }
 .save-msg{ font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); }
 .save-msg.err{ color: #c17a5c; }
 
-.filter-bar{ display:flex; align-items:center; gap:8px; margin-bottom: 18px; font-family: var(--mono); font-size: 11px; }
+.filter-bar{ display:flex; align-items:center; gap:8px; margin-bottom: 18px; font-family: var(--mono); font-size: 11px; flex-wrap: wrap; row-gap: 8px; }
 .filter-bar .flabel{ color: var(--ink-faint); text-transform: uppercase; letter-spacing: .08em; margin-right: 4px;}
 .chip{
   background: none; border: 1px solid var(--line); color: var(--ink-dim);
@@ -113,12 +113,25 @@ select{ cursor: pointer; }
 }
 .chip.active{ border-color: var(--amber); color: var(--amber); }
 
-.day-group{ margin-bottom: 26px; }
+.day-group{ margin-bottom: 20px; }
 .day-heading{
   font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
   letter-spacing: 0.1em; text-transform: uppercase; display:flex; align-items:center; gap:10px; margin-bottom: 12px;
+  cursor: pointer;
 }
-.day-heading::after{ content:''; flex:1; height:1px; background: var(--line); }
+.week-group{ margin-bottom: 8px; }
+.week-heading{
+  font-family: var(--mono); font-size: 12px; color: var(--amber);
+  letter-spacing: 0.12em; text-transform: uppercase; display:flex; align-items:center; gap:10px;
+  margin: 26px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--amber-dim);
+  cursor: pointer;
+}
+.week-group:first-child .week-heading{ margin-top: 0; }
+.group-count{
+  font-family: var(--mono); font-size: 9.5px; color: var(--ink-faint); background: var(--bg-panel-raised);
+  border-radius: 20px; padding: 1px 8px; margin-left: auto;
+}
+.week-heading .group-count{ color: #8a7635; background: #c9a24b22; }
 
 .card{
   background: var(--paper); color: #24221c; border-radius: 2px; padding: 12px 16px 12px;
@@ -205,6 +218,29 @@ select{ cursor: pointer; }
   .todo-toggle{ left: 10px; }
   .todo-panel{ left: 58px; width: calc(100vw - 76px); }
 }
+@media (max-width: 640px){
+  body{ padding: 24px 12px 70px; }
+  .wrap{ max-width: 100%; }
+  h1{ font-size: 23px; }
+  .stats{ gap: 12px; }
+  .stat .num{ font-size: 16px; }
+  .expand-controls{ margin-left: 0; width: 100%; justify-content: flex-end; }
+  .week-heading, .day-heading{ font-size: 10px; }
+  .card{ padding: 10px 12px 10px; }
+  .entry-row-title{ font-size: 13.5px; }
+  .composer-body{ padding: 14px 14px 12px; }
+  .setup{ margin: 40px auto; padding: 20px; }
+}
+@media (max-width: 420px){
+  .type-tab{ font-size: 9.5px; padding: 10px 4px; }
+  .field{ min-width: 100%; }
+  .entry-row{ gap: 6px; }
+  .entry-row-actions button{ font-size: 13px; }
+  h1{ font-size: 20px; }
+  .stats{ width: 100%; justify-content: space-between; gap: 6px; }
+  .stat .num{ font-size: 14.5px; }
+  .stat .label{ font-size: 8.5px; }
+}
 .stamp.decision{ color: #6b4a8a; }
 .stamp.account{ color: #3d6b73; }
 .warn-note{ font-size: 11.5px; color: var(--ink-faint); margin-top: -4px; margin-bottom: 10px; line-height: 1.5; }
@@ -226,7 +262,6 @@ select{ cursor: pointer; }
 .loading{ text-align:center; padding: 60px 20px; color: var(--ink-faint); font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase;}
 .error-banner{ background:#c17a5c22; border:1px solid #c17a5c66; color:#e8b39c; padding:12px 16px; border-radius: var(--radius); font-size: 13px; margin-bottom: 20px; font-family: var(--mono); }
 
-@media (max-width: 480px){ .stats{ gap: 14px; } h1{ font-size: 24px; } }
 </style>
 </head>
 <body>
@@ -416,6 +451,8 @@ let loaded = false;
 let editingId = null;
 let pendingCalEvents = [];
 let expandedIds = new Set();
+let collapsedDays = new Set();
+let collapsedWeeks = new Set();
 
 const $ = (sel) => document.querySelector(sel);
 const timeline = $('#timeline');
@@ -432,6 +469,7 @@ async function loadEntries(){
     entries = data || [];
   }
   loaded = true;
+  applyDefaultCollapse();
   refreshLinkDropdowns();
   render();
 }
@@ -646,6 +684,10 @@ if(type === 'session'){
     } else {
       entries.unshift(data[0]);
       expandedIds.add(data[0].id);
+      if(data[0].date){
+        collapsedDays.delete(data[0].date);
+        collapsedWeeks.delete(weekKeyAndLabel(data[0].date).key);
+      }
     }
     document.querySelectorAll('#form-' + type + ' input[type=text], #form-' + type + ' input[type=number], #form-' + type + ' input[type=time], #form-' + type + ' textarea').forEach(el => el.value = '');
     document.querySelectorAll('#form-' + type + ' select[id$="-linked"]').forEach(el => el.value = '');
@@ -876,6 +918,14 @@ function refreshLinkDropdowns(){
   });
 }
 
+function weekKeyAndLabel(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  const start = new Date(d); start.setDate(d.getDate() - d.getDay());
+  const end = new Date(start); end.setDate(start.getDate() + 6);
+  const fmt = (x) => x.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  return { key: start.toISOString().slice(0,10), label: `${fmt(start)} – ${fmt(end)}` };
+}
+
 function render(){
   if(!loaded){ timeline.innerHTML = '<div class="loading">Loading log…</div>'; return; }
   renderStats();
@@ -892,15 +942,66 @@ function render(){
     return;
   }
 
-  const groups = {};
-  filtered.forEach(e => { const key = e.date || 'Undated'; if(!groups[key]) groups[key] = []; groups[key].push(e); });
+  const weekMap = {};
+  filtered.forEach(e => {
+    const dateKey = e.date || 'undated';
+    const wk = e.date ? weekKeyAndLabel(e.date) : { key: 'undated', label: 'Undated' };
+    if(!weekMap[wk.key]) weekMap[wk.key] = { label: wk.label, days: {} };
+    if(!weekMap[wk.key].days[dateKey]) weekMap[wk.key].days[dateKey] = [];
+    weekMap[wk.key].days[dateKey].push(e);
+  });
 
-  timeline.innerHTML = Object.keys(groups).sort().reverse().map(date => `
-    <div class="day-group">
-      <div class="day-heading">${fmtDate(date)}</div>
-      ${groups[date].map(e => cardHtml(e, expandedIds.has(e.id))).join('')}
-    </div>
-  `).join('');
+  const weekKeys = Object.keys(weekMap).sort().reverse();
+
+  timeline.innerHTML = weekKeys.map(wk => {
+    const week = weekMap[wk];
+    const dayKeys = Object.keys(week.days).sort().reverse();
+    const weekCount = dayKeys.reduce((sum, d) => sum + week.days[d].length, 0);
+    const weekCollapsed = collapsedWeeks.has(wk);
+
+    const daysHtml = dayKeys.map(dateKey => {
+      const dayEntries = week.days[dateKey];
+      const dayCollapsed = collapsedDays.has(dateKey);
+      return `
+        <div class="day-group">
+          <div class="day-heading" onclick="toggleDay('${dateKey}')">
+            <span class="chevron">${dayCollapsed ? '▸' : '▾'}</span>
+            ${dateKey === 'undated' ? 'Undated' : fmtDate(dateKey)}
+            <span class="group-count">${dayEntries.length}</span>
+          </div>
+          ${dayCollapsed ? '' : dayEntries.map(e => cardHtml(e, expandedIds.has(e.id))).join('')}
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="week-group">
+        <div class="week-heading" onclick="toggleWeek('${wk}')">
+          <span class="chevron">${weekCollapsed ? '▸' : '▾'}</span>
+          Week of ${week.label}
+          <span class="group-count">${weekCount}</span>
+        </div>
+        ${weekCollapsed ? '' : daysHtml}
+      </div>`;
+  }).join('');
+}
+
+function toggleWeek(key){
+  if(collapsedWeeks.has(key)) collapsedWeeks.delete(key); else collapsedWeeks.add(key);
+  render();
+}
+window.toggleWeek = toggleWeek;
+
+function toggleDay(key){
+  if(collapsedDays.has(key)) collapsedDays.delete(key); else collapsedDays.add(key);
+  render();
+}
+window.toggleDay = toggleDay;
+
+function applyDefaultCollapse(){
+  const allDates = [...new Set(entries.map(e => e.date).filter(Boolean))].sort().reverse();
+  allDates.slice(1).forEach(d => collapsedDays.add(d));
+  const allWeeks = [...new Set(allDates.map(d => weekKeyAndLabel(d).key))].sort().reverse();
+  allWeeks.slice(1).forEach(w => collapsedWeeks.add(w));
 }
 
 function renderStats(){
