@@ -172,6 +172,19 @@ select{ cursor: pointer; }
 .cal-link.cal-added{ color:#4f7043; border-bottom-color:#4f704388; }
 .cal-link.cal-btn{ background:none; border:none; padding:0; font-family: var(--mono); font-size:10.5px; letter-spacing:.04em; cursor:pointer; }
 .meta-info{ font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); margin-top: 5px; line-height: 1.5; }
+.verdict-toggle{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.verdict-chip{ background:none; font-family: var(--mono); }
+.verdict-chip[data-value="accepted"].active{ border-color:#4f7043; color:#4f7043; }
+.verdict-chip[data-value="rejected"].active{ border-color:#8a4a35; color:#8a4a35; }
+.verdict-chip[data-value="maybe"].active{ border-color:#8a7635; color:#8a7635; }
+.verdict-chip[data-value="alternate"].active{ border-color:#4a5b8a; color:#4a5b8a; }
+.verdict-chip[data-value="related-work"].active{ border-color:#6b6656; color:#6b6656; }
+.milestone-banner{
+  display:flex; align-items:center; gap:10px; width:fit-content; max-width:100%;
+  font-family: var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+  color:#8a6d1a; border:1px dashed #c9a24b; border-radius:20px; padding:5px 14px; margin:16px 0 8px;
+}
+.milestone-banner .m-date{ color: var(--ink-faint); text-transform:none; letter-spacing:normal; }
 .card.verdict-accepted{ border-left: 3px solid #4f7043; }
 .card.verdict-rejected{ border-left: 3px solid #8a4a35; }
 .card.verdict-maybe{ border-left: 3px solid #8a7635; }
@@ -401,13 +414,14 @@ document.getElementById('app').innerHTML = `
         <div class="field-row">
           <div class="field"><label>Title</label><input type="text" id="p-title" placeholder="Paper title"></div>
           <div class="field"><label>Verdict</label>
-            <select id="p-verdict">
-              <option value="accepted">Accepted / using</option>
-              <option value="maybe">Extendable</option>
-              <option value="alternate">Alternate</option>
-              <option value="rejected">Rejected</option>
-              <option value="related-work">Related work</option>
-            </select>
+            <input type="hidden" id="p-verdict" value="accepted">
+            <div class="verdict-toggle" id="p-verdict-toggle">
+              <button type="button" class="chip verdict-chip active" data-value="accepted">Accepted / using</button>
+              <button type="button" class="chip verdict-chip" data-value="maybe">Extendable</button>
+              <button type="button" class="chip verdict-chip" data-value="alternate">Alternate</button>
+              <button type="button" class="chip verdict-chip" data-value="rejected">Rejected</button>
+              <button type="button" class="chip verdict-chip" data-value="related-work">Related work</button>
+            </div>
           </div>
         </div>
         <div class="field-row">
@@ -544,6 +558,19 @@ $('#s-milestone-check').addEventListener('change', (e) => {
   document.getElementById('s-milestone-label-row').style.display = e.target.checked ? 'flex' : 'none';
 });
 
+document.querySelectorAll('#p-verdict-toggle .verdict-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#p-verdict-toggle .verdict-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    document.getElementById('p-verdict').value = chip.dataset.value;
+  });
+});
+function setVerdictChip(value){
+  document.querySelectorAll('#p-verdict-toggle .verdict-chip').forEach(c => c.classList.toggle('active', c.dataset.value === value));
+  document.getElementById('p-verdict').value = value;
+}
+window.setVerdictChip = setVerdictChip;
+
 $('#p-link').addEventListener('blur', () => tryFetchPaperMetadata($('#p-link').value.trim()));
 
 async function tryFetchPaperMetadata(link){
@@ -631,10 +658,14 @@ document.getElementById('verdict-select').addEventListener('change', (e) => {
 
 document.getElementById('expand-all-btn').addEventListener('click', () => {
   entries.forEach(e => expandedIds.add(e.id));
+  collapsedDays.clear();
+  collapsedWeeks.clear();
   render();
 });
 document.getElementById('collapse-all-btn').addEventListener('click', () => {
   expandedIds.clear();
+  entries.forEach(e => { if(e.date) collapsedDays.add(e.date); });
+  entries.forEach(e => { if(e.date) collapsedWeeks.add(weekKeyAndLabel(e.date).key); });
   render();
 });
 
@@ -805,7 +836,7 @@ if(type === 'session'){
       $('#s-milestone-check').checked = false;
       document.getElementById('s-milestone-label-row').style.display = 'none';
     }
-    if(type === 'paper') document.getElementById('p-meta-info').textContent = '';
+    if(type === 'paper') { document.getElementById('p-meta-info').textContent = ''; setVerdictChip('accepted'); }
     document.getElementById(type === 'session' ? 's-date' : type[0] + '-date').value = todayStr();
     refreshLinkDropdowns();
     render();
@@ -840,7 +871,7 @@ function editEntry(id){
     $('#p-title').value = e.title || '';
     $('#p-date').value = e.date || '';
     $('#p-link').value = e.link || '';
-    $('#p-verdict').value = e.verdict || 'accepted';
+    setVerdictChip(e.verdict || 'accepted');
     $('#p-reason').value = e.reason || '';
     $('#p-tags').value = (e.tags || []).join(', ');
     $('#p-linked').value = e.linked_id || '';
@@ -931,6 +962,10 @@ function linkedBadge(e){
   const label = t.type==='session' ? `Session · ${fmtDate(t.date)}` : t.type==='paper' ? `Paper · ${t.title}` : t.type==='decision' ? `Decision · ${t.decision}` : `Account · ${t.title}`;
   return `<div class="linked-jump" onclick="event.stopPropagation(); jumpToEntry('${t.id}')">↳ linked to ${escapeHtml(label)} →</div>`;
 }
+function milestoneBannerHtml(e){
+  return `<div class="milestone-banner">★ ${escapeHtml(e.milestone_label || 'Milestone')} <span class="m-date">${fmtDate(e.date)}</span></div>`;
+}
+
 function renderMilestoneStrip(){
   const strip = document.getElementById('milestone-strip');
   if(!strip) return;
@@ -1117,7 +1152,7 @@ function render(){
             ${dateKey === 'undated' ? 'Undated' : fmtDate(dateKey)}
             <span class="group-count">${dayEntries.length}</span>
           </div>
-          ${dayCollapsed ? '' : dayEntries.map(e => cardHtml(e, expandedIds.has(e.id))).join('')}
+          ${dayCollapsed ? '' : dayEntries.map(e => (e.is_milestone ? milestoneBannerHtml(e) : '') + cardHtml(e, expandedIds.has(e.id))).join('')}
         </div>`;
     }).join('');
 
