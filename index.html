@@ -153,6 +153,10 @@ select{ cursor: pointer; }
 .expand-controls button:hover{ color: var(--amber); }
 .verdict-filter-bar{ margin-top:-8px; margin-bottom:18px; padding-left:2px; }
 .verdict-filter-bar .chip{ font-size:10px; padding:3px 10px; }
+.verdict-select{
+  background: var(--bg-panel-raised); border: 1px solid var(--line); color: var(--ink-dim);
+  font-family: var(--mono); font-size: 10.5px; padding: 4px 10px; border-radius: 20px; cursor: pointer;
+}
 .card:nth-child(3n+1){ --tilt: -0.2deg; }
 .card:nth-child(3n+2){ --tilt: 0.15deg; }
 
@@ -435,19 +439,18 @@ document.getElementById('app').innerHTML = `
       <button class="chip" data-filter="paper">Papers</button>
       <button class="chip" data-filter="decision">Decisions</button>
       <button class="chip" data-filter="account">Accounts</button>
+      <select id="verdict-select" class="verdict-select" style="display:none;">
+        <option value="all">All verdicts</option>
+        <option value="accepted">Accepted</option>
+        <option value="maybe">Extendable</option>
+        <option value="alternate">Alternate</option>
+        <option value="rejected">Rejected</option>
+        <option value="related-work">Related work</option>
+      </select>
       <div class="expand-controls">
         <button id="expand-all-btn">Expand all</button>
         <button id="collapse-all-btn">Collapse all</button>
       </div>
-    </div>
-    <div class="filter-bar verdict-filter-bar" id="verdict-filter-bar" style="display:none;">
-      <span class="flabel">Verdict</span>
-      <button class="chip active" data-vfilter="all">All</button>
-      <button class="chip" data-vfilter="accepted">Accepted</button>
-      <button class="chip" data-vfilter="maybe">Extendable</button>
-      <button class="chip" data-vfilter="alternate">Alternate</button>
-      <button class="chip" data-vfilter="rejected">Rejected</button>
-      <button class="chip" data-vfilter="related-work">Related work</button>
     </div>
 
     <div id="timeline"><div class="loading">Loading log…</div></div>
@@ -579,26 +582,21 @@ document.querySelectorAll('#type-filter-bar .chip').forEach(chip => {
     chip.classList.add('active');
     activeFilter = chip.dataset.filter;
 
-    const vbar = document.getElementById('verdict-filter-bar');
+    const vSelect = document.getElementById('verdict-select');
     if(activeFilter === 'paper'){
-      vbar.style.display = 'flex';
+      vSelect.style.display = 'inline-block';
     } else {
-      vbar.style.display = 'none';
+      vSelect.style.display = 'none';
       activeVerdictFilter = 'all';
-      document.querySelectorAll('#verdict-filter-bar .chip').forEach(c => c.classList.remove('active'));
-      document.querySelector('#verdict-filter-bar .chip[data-vfilter="all"]').classList.add('active');
+      vSelect.value = 'all';
     }
     render();
   });
 });
 
-document.querySelectorAll('#verdict-filter-bar .chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('#verdict-filter-bar .chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    activeVerdictFilter = chip.dataset.vfilter;
-    render();
-  });
+document.getElementById('verdict-select').addEventListener('change', (e) => {
+  activeVerdictFilter = e.target.value;
+  render();
 });
 
 document.getElementById('expand-all-btn').addEventListener('click', () => {
@@ -644,13 +642,13 @@ function jumpToEntry(id){
   activeFilter = target.type;
   document.querySelectorAll('#type-filter-bar .chip').forEach(c => c.classList.toggle('active', c.dataset.filter === target.type));
 
-  const vbar = document.getElementById('verdict-filter-bar');
+  const vSelect = document.getElementById('verdict-select');
   if(target.type === 'paper'){
-    vbar.style.display = 'flex';
+    vSelect.style.display = 'inline-block';
     activeVerdictFilter = 'all';
-    document.querySelectorAll('#verdict-filter-bar .chip').forEach(c => c.classList.toggle('active', c.dataset.vfilter === 'all'));
+    vSelect.value = 'all';
   } else {
-    vbar.style.display = 'none';
+    vSelect.style.display = 'none';
   }
 
   if(target.date){
@@ -1021,12 +1019,13 @@ function render(){
   let filtered;
   if(activeTagFilter){
     filtered = entries.filter(e => (e.tags || []).includes(activeTagFilter));
-  } else if(searchQuery){
-    filtered = entries.filter(e => entryText(e).toLowerCase().includes(searchQuery));
   } else {
     filtered = entries.filter(e => e.type === activeFilter);
     if(activeFilter === 'paper' && activeVerdictFilter !== 'all'){
       filtered = filtered.filter(e => e.verdict === activeVerdictFilter);
+    }
+    if(searchQuery){
+      filtered = filtered.filter(e => entryText(e).toLowerCase().includes(searchQuery));
     }
   }
   if(filtered.length === 0){
