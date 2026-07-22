@@ -191,6 +191,24 @@ select{ cursor: pointer; }
   border-radius: var(--radius); padding:10px 14px; margin-bottom:18px; font-family: var(--mono); font-size:11.5px; color: var(--ink-dim);
 }
 .tag-filter-banner button{ margin-left:auto; background:none; border:none; color: var(--amber); cursor:pointer; font-family: var(--mono); font-size:11px; text-transform:uppercase; }
+.milestone-toggle-row{ margin-bottom: 10px; }
+.milestone-check{
+  display:flex; align-items:center; gap:8px; font-family: var(--mono); font-size: 11px;
+  color: var(--ink-dim); cursor: pointer; letter-spacing: .03em;
+}
+.milestone-check input{ width:auto; accent-color: var(--amber); cursor:pointer; }
+.stamp.milestone{ color:#8a6d1a; border-color:#8a6d1a; }
+#milestone-strip{ margin-bottom: 20px; }
+.milestone-strip-inner{
+  display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width: thin;
+}
+.milestone-pill{
+  flex-shrink:0; display:flex; align-items:center; gap:6px; background: var(--bg-panel);
+  border:1px solid #8a6d1a55; color:#c9a24b; font-family: var(--mono); font-size: 10.5px;
+  padding: 6px 12px; border-radius: 20px; cursor:pointer; white-space:nowrap;
+}
+.milestone-pill:hover{ border-color:#c9a24b; background: var(--bg-panel-raised); }
+.milestone-pill .m-date{ color: var(--ink-faint); }
 .flash-highlight{ animation: flashHighlight 1.5s ease; }
 @keyframes flashHighlight{
   0%{ box-shadow: 0 0 0 3px var(--amber); }
@@ -337,6 +355,8 @@ document.getElementById('app').innerHTML = `
 
     <div id="error-slot"></div>
 
+    <div id="milestone-strip"></div>
+
     <div class="composer" id="pending-cal-panel" style="margin-bottom:14px;">
       <div class="type-tabs" style="justify-content:space-between; align-items:center;">
         <span style="padding:6px 12px; font-family:var(--sans); font-size:13.5px; color:var(--ink);">Pending calendar events</span>
@@ -367,6 +387,12 @@ document.getElementById('app').innerHTML = `
         </div>
         <div class="field-row">
           <div class="field"><label>Next step / open question</label><input type="text" id="s-next" placeholder="What's still unresolved going into next session"></div>
+        </div>
+        <div class="milestone-toggle-row">
+          <label class="milestone-check"><input type="checkbox" id="s-milestone-check"> This session is a milestone</label>
+        </div>
+        <div class="field-row" id="s-milestone-label-row" style="display:none;">
+          <div class="field"><label>Milestone label</label><input type="text" id="s-milestone-label" placeholder="e.g. Milestone 1: Encoders validated"></div>
         </div>
         <div class="composer-footer"><span class="save-msg" id="msg-session"></span><button class="btn-add" data-add="session">Log session</button></div>
       </div>
@@ -512,6 +538,10 @@ document.querySelectorAll('.type-tab').forEach(tab => {
 $('#search-box').addEventListener('input', (e) => {
   searchQuery = e.target.value.trim().toLowerCase();
   render();
+});
+
+$('#s-milestone-check').addEventListener('change', (e) => {
+  document.getElementById('s-milestone-label-row').style.display = e.target.checked ? 'flex' : 'none';
 });
 
 $('#p-link').addEventListener('blur', () => tryFetchPaperMetadata($('#p-link').value.trim()));
@@ -692,6 +722,8 @@ if(type === 'session'){
         summary,
         link: $('#s-link').value.trim(),
         next_step: $('#s-next').value.trim(),
+        is_milestone: $('#s-milestone-check').checked,
+        milestone_label: $('#s-milestone-check').checked ? $('#s-milestone-label').value.trim() : null,
       };
     }
     if(type === 'paper'){
@@ -769,6 +801,10 @@ if(type === 'session'){
     }
     document.querySelectorAll('#form-' + type + ' input[type=text], #form-' + type + ' input[type=number], #form-' + type + ' input[type=time], #form-' + type + ' textarea').forEach(el => el.value = '');
     document.querySelectorAll('#form-' + type + ' select[id$="-linked"]').forEach(el => el.value = '');
+    if(type === 'session'){
+      $('#s-milestone-check').checked = false;
+      document.getElementById('s-milestone-label-row').style.display = 'none';
+    }
     if(type === 'paper') document.getElementById('p-meta-info').textContent = '';
     document.getElementById(type === 'session' ? 's-date' : type[0] + '-date').value = todayStr();
     refreshLinkDropdowns();
@@ -796,6 +832,9 @@ function editEntry(id){
     $('#s-summary').value = e.summary || '';
     $('#s-link').value = e.link || '';
     $('#s-next').value = e.next_step || '';
+    $('#s-milestone-check').checked = !!e.is_milestone;
+    document.getElementById('s-milestone-label-row').style.display = e.is_milestone ? 'flex' : 'none';
+    $('#s-milestone-label').value = e.milestone_label || '';
   }
   if(e.type === 'paper'){
     $('#p-title').value = e.title || '';
@@ -892,6 +931,18 @@ function linkedBadge(e){
   const label = t.type==='session' ? `Session · ${fmtDate(t.date)}` : t.type==='paper' ? `Paper · ${t.title}` : t.type==='decision' ? `Decision · ${t.decision}` : `Account · ${t.title}`;
   return `<div class="linked-jump" onclick="event.stopPropagation(); jumpToEntry('${t.id}')">↳ linked to ${escapeHtml(label)} →</div>`;
 }
+function renderMilestoneStrip(){
+  const strip = document.getElementById('milestone-strip');
+  if(!strip) return;
+  const milestones = entries.filter(e => e.type === 'session' && e.is_milestone)
+    .sort((a,b) => (a.date || '').localeCompare(b.date || ''));
+  if(milestones.length === 0){ strip.innerHTML = ''; return; }
+  strip.innerHTML = `<div class="milestone-strip-inner">${milestones.map(m => `
+    <div class="milestone-pill" onclick="jumpToEntry('${m.id}')">
+      ★ ${escapeHtml(m.milestone_label || 'Milestone')} <span class="m-date">${fmtDate(m.date)}</span>
+    </div>`).join('')}</div>`;
+}
+
 function tagsHtml(e){
   return e.tags && e.tags.length ? `<div class="tags">${e.tags.map(t=>`<span class="tag" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</span>`).join('<span class="tag-dot">•</span>')}</div>` : '';
 }
@@ -908,7 +959,7 @@ function escapeHtml(s){
 }
 
 function entryRowTitle(e){
-  if(e.type === 'session') return e.summary || '(no summary)';
+  if(e.type === 'session') return (e.is_milestone && e.milestone_label) ? e.milestone_label : (e.summary || '(no summary)');
   if(e.type === 'paper') return e.title || '(untitled)';
   if(e.type === 'decision') return e.decision || '(untitled decision)';
   if(e.type === 'account') return e.title || '(untitled)';
@@ -925,7 +976,8 @@ function entryRowTitleHtml(e){
 
 function entryStampHtml(e){
   if(e.type === 'session'){
-    return `<span class="stamp session">Session</span><span class="entry-row-meta">${e.time ? fmtTime(e.time) + ' · ' : ''}${e.duration ? e.duration + ' min' : 'no duration'}</span>`;
+    const stamp = e.is_milestone ? `<span class="stamp milestone">★ Milestone</span>` : `<span class="stamp session">Session</span>`;
+    return `${stamp}<span class="entry-row-meta">${e.time ? fmtTime(e.time) + ' · ' : ''}${e.duration ? e.duration + ' min' : 'no duration'}</span>`;
   }
   if(e.type === 'paper'){
     const cls = e.verdict === 'accepted' ? 'paper-accepted' : e.verdict === 'rejected' ? 'paper-rejected' : e.verdict === 'alternate' ? 'paper-alternate' : 'paper-maybe';
@@ -1015,6 +1067,7 @@ function render(){
   if(!loaded){ timeline.innerHTML = '<div class="loading">Loading log…</div>'; return; }
   renderStats();
   renderTodo();
+  renderMilestoneStrip();
 
   let filtered;
   if(activeTagFilter){
