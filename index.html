@@ -87,6 +87,7 @@ h1{ font-family: var(--serif); font-weight: 500; font-size: 30px; letter-spacing
 .subtitle{ font-size: 13px; color: var(--ink-dim); margin-top: 4px; }
 .stats{ display:flex; gap: 22px; font-family: var(--mono); }
 .stat{ text-align: right; }
+.stat-warn .num{ color: #a35a3a; }
 .stat .num{ font-size: 19px; color: var(--paper); display:block; }
 .stat .label{ font-size: 9.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.1em; }
 
@@ -351,6 +352,44 @@ select{ cursor: pointer; }
 .graph-node:hover circle{ stroke: var(--amber); }
 .graph-link{ stroke: var(--line); stroke-width:1.5px; }
 .graph-empty{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-family:var(--sans); font-size:13px; text-align:center; padding:20px;}
+.recap-toggle{
+  position: fixed; right: 18px; top: calc(50% + 54px); transform: translateY(-50%);
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--bg-panel-raised); border: 1px solid var(--line); color: var(--amber);
+  font-family: var(--mono); font-size: 15px; cursor: pointer; z-index: 40;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 4px 14px -6px #00000088;
+}
+.recap-toggle:hover{ border-color: var(--amber); }
+.recap-modal{
+  position: fixed; inset:0; background: #00000099; z-index: 60;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none; transition: opacity .15s;
+}
+.recap-modal.open{ opacity:1; pointer-events:auto; }
+.recap-modal-inner{
+  width: min(640px, 94vw); height: min(680px, 88vh); background: var(--bg-panel);
+  border:1px solid var(--line); border-radius: var(--radius); display:flex; flex-direction:column; overflow:hidden;
+}
+.recap-header{ display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-dim); flex-wrap:wrap; }
+.recap-header select{ font-family:var(--sans); font-size:12.5px; padding:5px 8px; }
+.recap-close{ background:none; border:none; color:var(--ink-faint); font-size:18px; cursor:pointer; margin-left:auto; }
+.recap-close:hover{ color: var(--amber); }
+.recap-range-row{ display:flex; align-items:center; gap:8px; padding: 0 16px 12px; flex-wrap:wrap; }
+.recap-range-row select{ font-family:var(--sans); font-size:12.5px; padding:5px 8px; flex:1; min-width:120px; }
+#recap-list{ flex:1; overflow-y:auto; padding: 10px 16px; }
+.recap-day{ font-family: var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color: var(--ink-faint); margin: 14px 0 6px; }
+.recap-day:first-child{ margin-top:0; }
+.recap-entry{ padding:6px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+.recap-entry:hover .recap-entry-title{ color: var(--amber); }
+.recap-entry-title{ font-size:13px; color: var(--ink); }
+.recap-entry-sub{ font-size:11.5px; color: var(--ink-dim); margin-top:2px; }
+.recap-actions{ display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--line); flex-shrink:0; }
+.recap-actions button{ flex:1; }
+.recap-empty{ padding:30px 10px; text-align:center; color: var(--ink-faint); font-size:13px; }
+@media (max-width: 700px){
+  .recap-toggle{ right: 10px; }
+}
 @media (max-width: 700px){
   .graph-toggle{ right: 10px; }
 }
@@ -385,6 +424,10 @@ select{ cursor: pointer; }
 }
 .stamp.decision{ color: #6b4a8a; }
 .stamp.account{ color: #3d6b73; }
+.stamp.outcome-holding{ color: #4f7043; }
+.stamp.outcome-revisited{ color: #8a7635; }
+.stamp.outcome-reversed{ color: #8a4a35; }
+.stamp.outcome-superseded{ color: #6b6656; }
 .warn-note{ font-size: 11.5px; color: var(--ink-faint); margin-top: -4px; margin-bottom: 10px; line-height: 1.5; }
 .card-meta{ font-family: var(--mono); font-size: 10.5px; color: var(--ink-dim); }
 .card-title{ font-family: var(--serif); font-size: 16.5px; font-weight: 500; margin-bottom: 5px; line-height: 1.3; color: var(--ink);}
@@ -548,6 +591,15 @@ document.getElementById('app').innerHTML = `
             <div class="link-suggest" id="d-link-suggest"></div>
           </div>
         </div>
+        <div class="field-row"><div class="field"><label>Outcome (fill in later, once you know)</label>
+          <select id="d-outcome">
+            <option value="">— not yet reviewed —</option>
+            <option value="holding">Holding up</option>
+            <option value="revisited">Revisited / refined</option>
+            <option value="reversed">Reversed</option>
+            <option value="superseded">Superseded by a later decision</option>
+          </select>
+        </div></div>
         <div class="composer-footer"><span class="save-msg" id="msg-decision"></span><button class="btn-add" data-add="decision">Log decision</button></div>
       </div>
 
@@ -629,6 +681,34 @@ document.getElementById('app').innerHTML = `
       </div>
     </div>
   </div>
+
+  <button id="recap-toggle" class="recap-toggle" aria-label="Recap and export">⤓</button>
+  <div id="recap-modal" class="recap-modal">
+    <div class="recap-modal-inner">
+      <div class="recap-header">
+        Recap &amp; export
+        <select id="recap-scope">
+          <option value="since-last-session">Since last session</option>
+          <option value="since-last-milestone">Since last milestone</option>
+          <option value="last-7">Last 7 days</option>
+          <option value="last-30">Last 30 days</option>
+          <option value="custom">Milestone range…</option>
+          <option value="all">Entire log</option>
+        </select>
+        <button id="recap-close" class="recap-close" aria-label="Close">×</button>
+      </div>
+      <div class="recap-range-row" id="recap-range-row" style="display:none;">
+        <select id="recap-from"><option value="">— Start —</option></select>
+        <span style="color:var(--ink-faint); font-size:11px;">to</span>
+        <select id="recap-to"><option value="">— Now —</option></select>
+      </div>
+      <div id="recap-list"></div>
+      <div class="recap-actions">
+        <button class="btn-add" id="recap-copy-btn" type="button">Copy as text</button>
+        <button class="btn-add" id="recap-download-btn" type="button">Download as Markdown</button>
+      </div>
+    </div>
+  </div>
 `;
 
 const supabase = window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
@@ -685,7 +765,7 @@ $('#search-box').addEventListener('input', (e) => {
 });
 
 (function initTheme(){
-  const saved = localStorage.getItem('theme') || 'light';
+  const saved = localStorage.getItem('theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
 })();
 
@@ -768,6 +848,7 @@ async function fetchFromCrossref(doi, infoEl){
 
 document.getElementById('todo-toggle').addEventListener('click', () => {
   document.getElementById('milestone-panel').classList.remove('open');
+  document.getElementById('recap-modal').classList.remove('open');
   document.getElementById('todo-panel').classList.toggle('open');
 });
 document.getElementById('todo-close').addEventListener('click', () => {
@@ -776,6 +857,7 @@ document.getElementById('todo-close').addEventListener('click', () => {
 
 document.getElementById('milestone-toggle').addEventListener('click', () => {
   document.getElementById('todo-panel').classList.remove('open');
+  document.getElementById('recap-modal').classList.remove('open');
   document.getElementById('milestone-panel').classList.toggle('open');
 });
 document.getElementById('milestone-close').addEventListener('click', () => {
@@ -1080,7 +1162,8 @@ if(type === 'session'){
         rationale: $('#d-rationale').value.trim(),
         alternatives: $('#d-alternatives').value.trim(),
         tags: $('#d-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
-        linked_id: $('#d-linked').value || null
+        linked_id: $('#d-linked').value || null,
+        outcome: $('#d-outcome').value || null
       };
     }
     if(type === 'account'){
@@ -1132,6 +1215,7 @@ if(type === 'session'){
     }
     document.querySelectorAll('#form-' + type + ' input[type=text], #form-' + type + ' input[type=number], #form-' + type + ' input[type=time], #form-' + type + ' textarea').forEach(el => el.value = '');
     document.querySelectorAll('#form-' + type + ' select[id$="-linked"]').forEach(el => el.value = '');
+    if(type === 'decision') $('#d-outcome').value = '';
     document.querySelectorAll('#form-' + type + ' .link-suggest').forEach(el => el.innerHTML = '');
     if(type === 'session'){
       $('#s-milestone-check').checked = false;
@@ -1188,6 +1272,7 @@ function editEntry(id){
     $('#d-alternatives').value = e.alternatives || '';
     $('#d-tags').value = (e.tags || []).join(', ');
     $('#d-linked').value = e.linked_id || '';
+    $('#d-outcome').value = e.outcome || '';
   }
   if(e.type === 'account'){
     $('#a-title').value = e.title || '';
@@ -1349,9 +1434,22 @@ function entryStampHtml(e){
     const label = e.verdict === 'accepted' ? 'Accepted' : e.verdict === 'rejected' ? 'Rejected' : e.verdict === 'related-work' ? 'Related work' : e.verdict === 'alternate' ? 'Alternate' : 'Extendable';
     return `<span class="stamp ${cls}">${label}</span>`;
   }
-  if(e.type === 'decision') return `<span class="stamp decision">Decision</span>`;
+  if(e.type === 'decision') return `<span class="stamp decision">Decision</span>${e.outcome ? outcomeBadge(e) : ''}`;
   if(e.type === 'account') return `<span class="stamp account">Account</span>`;
   return '';
+}
+
+function outcomeBadge(e){
+  if(!e.outcome) return '';
+  const map = {
+    holding: { label: 'Holding up', cls: 'outcome-holding' },
+    revisited: { label: 'Revisited', cls: 'outcome-revisited' },
+    reversed: { label: 'Reversed', cls: 'outcome-reversed' },
+    superseded: { label: 'Superseded', cls: 'outcome-superseded' }
+  };
+  const m = map[e.outcome];
+  if(!m) return '';
+  return `<span class="stamp ${m.cls}">${m.label}</span>`;
 }
 
 function entryDetailHtml(e){
@@ -1376,6 +1474,7 @@ function entryDetailHtml(e){
     return `
       ${e.rationale ? `<div class="card-body"><span class="k">Rationale</span>${escapeHtml(e.rationale)}</div>` : ''}
       ${e.alternatives ? `<div class="card-body"><span class="k">Alternatives considered</span>${escapeHtml(e.alternatives)}</div>` : ''}
+      ${outcomeBadge(e)}
       ${tagsHtml(e)}
       ${linkedBadge(e)}
       ${downstreamHtml(e)}`;
@@ -1628,10 +1727,22 @@ function renderStats(){
   const accepted = entries.filter(e=>e.type==='paper' && e.verdict==='accepted').length;
   const rejected = entries.filter(e=>e.type==='paper' && e.verdict==='rejected').length;
   const decisions = entries.filter(e=>e.type==='decision').length;
+
+  const lastDate = entries.reduce((max,e)=> (e.date && e.date > max) ? e.date : max, '');
+  let sinceLabel = '—', sinceStale = false;
+  if(lastDate){
+    const d = new Date(lastDate + 'T00:00:00');
+    const now = new Date(); now.setHours(0,0,0,0);
+    const days = Math.round((now - d) / 86400000);
+    sinceLabel = days <= 0 ? 'Today' : days === 1 ? '1 day' : days + ' days';
+    sinceStale = days > 6;
+  }
+
   $('#stats').innerHTML = `
     <div class="stat"><span class="num">${hours}</span><span class="label">Hours logged</span></div>
     <div class="stat"><span class="num">${accepted}/${rejected}</span><span class="label">Papers acc/rej</span></div>
     <div class="stat"><span class="num">${decisions}</span><span class="label">Decisions</span></div>
+    <div class="stat${sinceStale ? ' stat-warn' : ''}"><span class="num">${sinceLabel}</span><span class="label">Since last log</span></div>
   `;
 }
 
@@ -1934,6 +2045,185 @@ async function reviewCalendarEvent(id, action){
   }
 }
 window.reviewCalendarEvent = reviewCalendarEvent;
+
+// ---------- Recap & Export ----------
+
+function recapEntrySummary(e){
+  if(e.type === 'session') return e.summary || '(no summary)';
+  if(e.type === 'paper') return e.title || '(untitled paper)';
+  if(e.type === 'decision') return e.decision || '(untitled decision)';
+  if(e.type === 'account') return e.title || '(untitled)';
+  return '';
+}
+
+function recapEntryDetail(e){
+  const lines = [];
+  if(e.type === 'session'){
+    if(e.is_milestone) lines.push('★ Milestone: ' + (e.milestone_label || ''));
+    if(e.next_step) lines.push('Next step: ' + e.next_step);
+  }
+  if(e.type === 'paper'){
+    const verdictLabel = e.verdict === 'accepted' ? 'Accepted' : e.verdict === 'rejected' ? 'Rejected' : e.verdict === 'related-work' ? 'Related work' : e.verdict === 'alternate' ? 'Alternate' : 'Extendable';
+    lines.push('Verdict: ' + verdictLabel);
+    if(e.reason) lines.push(e.reason);
+  }
+  if(e.type === 'decision'){
+    if(e.rationale) lines.push('Rationale: ' + e.rationale);
+    if(e.alternatives) lines.push('Alternatives considered: ' + e.alternatives);
+    if(e.outcome){
+      const outcomeMap = { holding: 'Holding up', revisited: 'Revisited / refined', reversed: 'Reversed', superseded: 'Superseded by a later decision' };
+      lines.push('Outcome: ' + (outcomeMap[e.outcome] || e.outcome));
+    }
+  }
+  if(e.type === 'account'){
+    if(e.reason) lines.push(e.reason);
+  }
+  return lines;
+}
+
+function resolveRecapEntries(scope, fromId, toId){
+  const sorted = [...entries].sort((a,b) => (a.date||'').localeCompare(b.date||'') || String(a.id).localeCompare(String(b.id)));
+
+  if(scope === 'since-last-session'){
+    const sessions = sorted.filter(e => e.type === 'session');
+    if(sessions.length < 2) return sorted;
+    const cutoffDate = sessions[sessions.length - 2].date || '';
+    return sorted.filter(e => (e.date || '') > cutoffDate);
+  }
+  if(scope === 'since-last-milestone'){
+    const milestones = sorted.filter(e => e.is_milestone);
+    if(milestones.length === 0) return sorted;
+    const lastDate = milestones[milestones.length - 1].date || '';
+    return sorted.filter(e => (e.date || '') >= lastDate);
+  }
+  if(scope === 'last-7' || scope === 'last-30'){
+    const days = scope === 'last-7' ? 7 : 30;
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days); cutoff.setHours(0,0,0,0);
+    const cutoffStr = cutoff.toISOString().slice(0,10);
+    return sorted.filter(e => (e.date || '') >= cutoffStr);
+  }
+  if(scope === 'custom'){
+    let fromDate = '', toDate = '';
+    if(fromId){ const f = entries.find(x => x.id === fromId); if(f) fromDate = f.date || ''; }
+    if(toId){ const t = entries.find(x => x.id === toId); if(t) toDate = t.date || ''; }
+    return sorted.filter(e => (!fromDate || (e.date || '') >= fromDate) && (!toDate || (e.date || '') <= toDate));
+  }
+  return sorted; // 'all'
+}
+
+function populateRecapMilestoneSelects(){
+  const milestones = [...entries].filter(e => e.is_milestone).sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  const opts = milestones.map(m => `<option value="${m.id}">${escapeHtml(m.milestone_label || 'Milestone')} — ${fmtDate(m.date)}</option>`).join('');
+  $('#recap-from').innerHTML = '<option value="">— Start —</option>' + opts;
+  $('#recap-to').innerHTML = '<option value="">— Now —</option>' + opts;
+}
+
+function renderRecap(){
+  const scope = $('#recap-scope').value;
+  $('#recap-range-row').style.display = scope === 'custom' ? 'flex' : 'none';
+  const fromId = $('#recap-from').value || null;
+  const toId = $('#recap-to').value || null;
+  const scoped = resolveRecapEntries(scope, fromId, toId);
+
+  const list = $('#recap-list');
+  if(scoped.length === 0){
+    list.innerHTML = `<div class="recap-empty">Nothing in this range.</div>`;
+    return;
+  }
+
+  let lastDate = null;
+  list.innerHTML = scoped.map(e => {
+    const dateChanged = e.date !== lastDate;
+    lastDate = e.date;
+    const detail = recapEntryDetail(e).join(' · ');
+    return `
+      ${dateChanged ? `<div class="recap-day">${e.date ? fmtDate(e.date) : 'Undated'}</div>` : ''}
+      <div class="recap-entry" onclick="document.getElementById('recap-modal').classList.remove('open'); jumpToEntry('${e.id}');">
+        <div class="recap-entry-title">${escapeHtml(recapEntrySummary(e))}</div>
+        ${detail ? `<div class="recap-entry-sub">${escapeHtml(detail)}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function recapScopeLabel(){
+  const scope = $('#recap-scope').value;
+  const map = {
+    'since-last-session': 'Recap since last session',
+    'since-last-milestone': 'Recap since last milestone',
+    'last-7': 'Recap — last 7 days',
+    'last-30': 'Recap — last 30 days',
+    'custom': 'Recap — custom range',
+    'all': 'Full research log'
+  };
+  return map[scope] || 'Recap';
+}
+
+function buildRecapText(markdown){
+  const scope = $('#recap-scope').value;
+  const fromId = $('#recap-from').value || null;
+  const toId = $('#recap-to').value || null;
+  const scoped = resolveRecapEntries(scope, fromId, toId);
+  const title = recapScopeLabel();
+
+  let out = markdown ? `# ${title}\n\n` : `${title}\n${'='.repeat(title.length)}\n\n`;
+  if(scoped.length === 0) return out + '(Nothing in this range.)\n';
+
+  let lastDate = null;
+  scoped.forEach(e => {
+    if(e.date !== lastDate){
+      lastDate = e.date;
+      out += markdown ? `\n## ${e.date ? fmtDate(e.date) : 'Undated'}\n\n` : `\n${e.date ? fmtDate(e.date) : 'Undated'}\n${'-'.repeat(20)}\n`;
+    }
+    const typeLabel = e.type.toUpperCase();
+    out += markdown ? `**${typeLabel}:** ${recapEntrySummary(e)}\n` : `[${typeLabel}] ${recapEntrySummary(e)}\n`;
+    recapEntryDetail(e).forEach(line => { out += (markdown ? `- ${line}\n` : `  ${line}\n`); });
+    out += '\n';
+  });
+  return out;
+}
+
+document.getElementById('recap-toggle').addEventListener('click', () => {
+  document.getElementById('todo-panel').classList.remove('open');
+  document.getElementById('milestone-panel').classList.remove('open');
+  populateRecapMilestoneSelects();
+  renderRecap();
+  document.getElementById('recap-modal').classList.add('open');
+});
+document.getElementById('recap-close').addEventListener('click', () => {
+  document.getElementById('recap-modal').classList.remove('open');
+});
+document.getElementById('recap-modal').addEventListener('click', (ev) => {
+  if(ev.target.id === 'recap-modal') document.getElementById('recap-modal').classList.remove('open');
+});
+document.getElementById('recap-scope').addEventListener('change', renderRecap);
+document.getElementById('recap-from').addEventListener('change', renderRecap);
+document.getElementById('recap-to').addEventListener('change', renderRecap);
+
+document.getElementById('recap-copy-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('recap-copy-btn');
+  try{
+    await navigator.clipboard.writeText(buildRecapText(false));
+    const orig = btn.textContent;
+    btn.textContent = 'Copied';
+    setTimeout(() => btn.textContent = orig, 1500);
+  } catch(err){
+    showError('Could not copy: ' + err.message);
+  }
+});
+
+document.getElementById('recap-download-btn').addEventListener('click', () => {
+  const md = buildRecapText(true);
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const scopeSlug = $('#recap-scope').value;
+  a.href = url;
+  a.download = `recap-${scopeSlug}-${todayStr()}.md`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
 
 loadEntries();
 loadPendingCalendarEvents();
