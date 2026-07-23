@@ -249,17 +249,30 @@ select{ cursor: pointer; }
 }
 .milestone-check input{ width:auto; accent-color: var(--amber); cursor:pointer; }
 .stamp.milestone{ color:#8a6d1a; border-color:#8a6d1a; }
-#milestone-strip{ margin-bottom: 20px; }
-.milestone-strip-inner{
-  display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width: thin;
+.milestone-toggle{
+  position: fixed; left: 18px; top: calc(50% + 54px); transform: translateY(-50%);
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--bg-panel-raised); border: 1px solid var(--line); color: var(--amber);
+  font-family: var(--mono); font-size: 15px; cursor: pointer; z-index: 40;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 4px 14px -6px #00000088;
 }
-.milestone-pill{
-  flex-shrink:0; display:flex; align-items:center; gap:6px; background: var(--bg-panel);
-  border:1px solid #8a6d1a55; color:#c9a24b; font-family: var(--mono); font-size: 10.5px;
-  padding: 6px 12px; border-radius: 20px; cursor:pointer; white-space:nowrap;
+.milestone-toggle:hover{ border-color: var(--amber); }
+.milestone-panel{
+  position: fixed; left: 70px; top: calc(50% + 54px); transform: translateY(-50%);
+  width: 280px; max-height: 60vh; background: var(--bg-panel); border: 1px solid var(--line);
+  border-radius: var(--radius); z-index: 41; box-shadow: 0 10px 30px -10px #000000aa;
+  opacity:0; pointer-events:none; transition: opacity .15s;
+  display:flex; flex-direction:column;
 }
-.milestone-pill:hover{ border-color:#c9a24b; background: var(--bg-panel-raised); }
-.milestone-pill .m-date{ color: var(--ink-faint); }
+.milestone-panel.open{ opacity:1; pointer-events:auto; }
+#milestone-list{ overflow-y:auto; padding: 8px 10px; }
+.milestone-item{ display:flex; align-items:baseline; gap:8px; padding:8px 6px; border-radius:3px; cursor:pointer; }
+.milestone-item:hover{ background: var(--bg-panel-raised); }
+.milestone-item .m-star{ color: var(--amber); flex-shrink:0; }
+.milestone-item .m-text{ font-size:12.5px; line-height:1.4; color: var(--ink); flex:1; }
+.milestone-item .m-date{ display:block; font-family: var(--mono); font-size:9.5px; color: var(--ink-faint); margin-top:2px; }
+.milestone-empty{ padding: 20px 10px; text-align:center; color: var(--ink-faint); font-size:12px; }
 .flash-highlight{ animation: flashHighlight 1.5s ease; }
 @keyframes flashHighlight{
   0%{ box-shadow: 0 0 0 3px var(--amber); }
@@ -344,6 +357,8 @@ select{ cursor: pointer; }
 @media (max-width: 700px){
   .todo-toggle{ left: 10px; }
   .todo-panel{ left: 58px; width: calc(100vw - 76px); }
+  .milestone-toggle{ left: 10px; }
+  .milestone-panel{ left: 58px; width: calc(100vw - 76px); }
 }
 @media (max-width: 640px){
   body{ padding: 24px 12px 70px; }
@@ -445,8 +460,6 @@ document.getElementById('app').innerHTML = `
     </header>
 
     <div id="error-slot"></div>
-
-    <div id="milestone-strip"></div>
 
     <div class="composer" id="pending-cal-panel" style="margin-bottom:14px;">
       <div class="type-tabs" style="justify-content:space-between; align-items:center;">
@@ -588,6 +601,12 @@ document.getElementById('app').innerHTML = `
   <div id="todo-panel" class="todo-panel">
     <div class="todo-header">Open questions <button id="todo-close" class="todo-close" aria-label="Close">×</button></div>
     <div id="todo-list"></div>
+  </div>
+
+  <button id="milestone-toggle" class="milestone-toggle" aria-label="Toggle milestones">★</button>
+  <div id="milestone-panel" class="milestone-panel">
+    <div class="todo-header">Milestones <button id="milestone-close" class="todo-close" aria-label="Close">×</button></div>
+    <div id="milestone-list"></div>
   </div>
 
   <button id="graph-toggle" class="graph-toggle" aria-label="Show connections graph">✳</button>
@@ -752,6 +771,13 @@ document.getElementById('todo-toggle').addEventListener('click', () => {
 });
 document.getElementById('todo-close').addEventListener('click', () => {
   document.getElementById('todo-panel').classList.remove('open');
+});
+
+document.getElementById('milestone-toggle').addEventListener('click', () => {
+  document.getElementById('milestone-panel').classList.toggle('open');
+});
+document.getElementById('milestone-close').addEventListener('click', () => {
+  document.getElementById('milestone-panel').classList.remove('open');
 });
 
 function debounce(fn, ms){
@@ -1254,16 +1280,30 @@ function downstreamHtml(e){
     }).join('')}
   </div>`;
 }
-function renderMilestoneStrip(){
-  const strip = document.getElementById('milestone-strip');
-  if(!strip) return;
+function renderMilestonePanel(){
+  const list = document.getElementById('milestone-list');
+  if(!list) return;
   const milestones = entries.filter(e => e.type === 'session' && e.is_milestone)
-    .sort((a,b) => (a.date || '').localeCompare(b.date || ''));
-  if(milestones.length === 0){ strip.innerHTML = ''; return; }
-  strip.innerHTML = `<div class="milestone-strip-inner">${milestones.map(m => `
-    <div class="milestone-pill" onclick="jumpToEntry('${m.id}')">
-      ★ ${escapeHtml(m.milestone_label || 'Milestone')} <span class="m-date">${fmtDate(m.date)}</span>
-    </div>`).join('')}</div>`;
+    .sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+
+  if(milestones.length === 0){
+    list.innerHTML = `<div class="milestone-empty">No milestones logged yet — check "Milestone" on a session to mark one.</div>`;
+  } else {
+    list.innerHTML = milestones.map(m => `
+      <div class="milestone-item" onclick="jumpToEntry('${m.id}'); document.getElementById('milestone-panel').classList.remove('open');">
+        <span class="m-star">★</span>
+        <span class="m-text">${escapeHtml(m.milestone_label || 'Milestone')}<span class="m-date">${fmtDate(m.date)}</span></span>
+      </div>`).join('');
+  }
+
+  const toggle = document.getElementById('milestone-toggle');
+  let badgeEl = toggle.querySelector('.todo-badge');
+  if(milestones.length > 0){
+    if(!badgeEl){ badgeEl = document.createElement('span'); badgeEl.className = 'todo-badge'; toggle.appendChild(badgeEl); }
+    badgeEl.textContent = milestones.length;
+  } else if(badgeEl){
+    badgeEl.remove();
+  }
 }
 
 function tagsHtml(e){
@@ -1402,7 +1442,7 @@ function render(){
   if(!loaded){ timeline.innerHTML = '<div class="loading">Loading log…</div>'; return; }
   renderStats();
   renderTodo();
-  renderMilestoneStrip();
+  renderMilestonePanel();
 
   let filtered;
   if(activeTagFilter){
