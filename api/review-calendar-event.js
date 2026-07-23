@@ -4,6 +4,19 @@
 // user's real local timezone — the server has no timezone context, so it
 // must not try to derive wall-clock time from the raw UTC start_time itself.
 
+// Google's `eid=` calendar links use base64url (RFC 4648 URL-safe alphabet,
+// no padding) — NOT standard base64. Standard base64 can contain '+', '/',
+// and trailing '=', which Google's calendar viewer cannot decode back into
+// a real event, silently resulting in "no event found" even though the
+// event and its id are perfectly valid.
+function toBase64Url(str) {
+  return Buffer.from(str)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -45,10 +58,10 @@ export default async function handler(req, res) {
       }
 
       // Reconstruct the Google Calendar event link the same way Google does:
-      // base64("<event_id> <calendar_email>")
+      // base64url("<event_id> <calendar_email>")
       let calendarEventLink = null;
       if (process.env.GOOGLE_CALENDAR_EMAIL) {
-        const eid = Buffer.from(`${row.google_event_id} ${process.env.GOOGLE_CALENDAR_EMAIL}`).toString('base64');
+        const eid = toBase64Url(`${row.google_event_id} ${process.env.GOOGLE_CALENDAR_EMAIL}`);
         calendarEventLink = `https://www.google.com/calendar/event?eid=${eid}`;
       }
 
@@ -69,9 +82,8 @@ export default async function handler(req, res) {
           summary: row.description || null,
           calendar_added: true,
           calendar_event_link: calendarEventLink,
-          // The REAL Google event ID — required so Unlink/Delete can later
-          // call the Calendar API to remove this event. This was previously
-          // (wrongly) left NULL, which silently broke calendar deletion.
+          // The REAL Google event ID — required so Unlink/Delete (and now
+          // Update) can call the Calendar API against this exact event.
           calendar_event_id: row.google_event_id
         })
       });
