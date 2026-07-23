@@ -666,7 +666,7 @@ $('#search-box').addEventListener('input', (e) => {
 });
 
 (function initTheme(){
-  const saved = localStorage.getItem('theme') || 'light';
+  const saved = localStorage.getItem('theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
 })();
 
@@ -1115,7 +1115,10 @@ if(type === 'session'){
     render();
     if(type === 'session' && !isEdit){
        addToGoogleCalendar(data[0].id);
-}
+    }
+    if(type === 'session' && isEdit && data[0].calendar_event_id){
+      syncCalendarEventUpdate(data[0]);
+    }
   });
 });
 
@@ -1714,19 +1717,7 @@ async function clearCalendarFields(id){
 window.unlinkCalendarEvent = unlinkCalendarEvent;
 
 async function createCalendarEvent(e, token){
-  const summary = (e.summary || 'Research session').slice(0, 80);
-  const description = (e.summary || '') + (e.next_step ? '\n\nOpen question: ' + e.next_step : '');
-  let body;
-  if(e.time){
-    const start = new Date(`${e.date}T${e.time}:00`);
-    const durMin = e.duration || 60;
-    const end = new Date(start.getTime() + durMin * 60000);
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    body = { summary, description, start: { dateTime: start.toISOString(), timeZone: tz }, end: { dateTime: end.toISOString(), timeZone: tz } };
-  } else {
-    const d1 = new Date(e.date + 'T00:00:00'); d1.setDate(d1.getDate() + 1);
-    body = { summary, description, start: { date: e.date }, end: { date: d1.toISOString().slice(0,10) } };
-  }
+  const body = buildCalendarEventBody(e);
 
   try{
     const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
@@ -1745,6 +1736,69 @@ async function createCalendarEvent(e, token){
     render();
   } catch(err){
     showError('Could not create the calendar event: ' + err.message);
+  }
+}
+
+function buildCalendarEventBody(e){
+  const summary = (e.summary || 'Research session').slice(0, 80);
+  let description = e.summary || '';
+  if(e.link) description += '\n\nLink: ' + e.link;
+  if(e.next_step) description += '\n\nOpen question: ' + e.next_step;
+  const body = { summary, description };
+  if(e.time){
+    const start = new Date(`${e.date}T${e.time}:00`);
+    const durMin = e.duration || 60;
+    const end = new Date(start.getTime() + durMin * 60000);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    body.start = { dateTime: start.toISOString(), timeZone: tz };
+    body.end = { dateTime: end.toISOString(), timeZone: tz };
+  } else if(e.date){
+    const d1 = new Date(e.date + 'T00:00:00'); d1.setDate(d1.getDate() + 1);
+    body.start = { date: e.date };
+    body.end = { date: d1.toISOString().slice(0, 10) };
+  }
+  return body;
+}
+
+// Pushes edits (summary, link, next step, date/time) to an already-linked
+// Google Calendar event. If the event has been deleted or moved on Google's
+// side, unlinks it locally instead of leaving a stale "Synced" badge that
+// points nowhere.
+async function updateCalendarEvent(e, token){
+  const body = buildCalendarEventBody(e);
+  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${e.calendar_event_id}`, {
+    method: 'PATCH',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if(res.status === 404 || res.status === 410){
+    await clearCalendarFields(e.id);
+    showError('The linked Calendar event no longer exists — unlinked locally. Use "Add to Google Calendar" to create a fresh one.');
+    return;
+  }
+
+  const data = await res.json();
+  if(!res.ok) throw new Error(data.error?.message || 'Calendar API error');
+
+  const { data: updated, error } = await supabase.from('entries')
+    .update({ calendar_event_link: data.htmlLink })
+    .eq('id', e.id).select();
+  if(!error && updated?.[0]){
+    entries = entries.map(x => x.id === e.id ? updated[0] : x);
+    render();
+  }
+}
+
+async function syncCalendarEventUpdate(e){
+  const msgEl = document.getElementById('msg-session');
+  try{
+    const token = await getFreshAccessToken();
+    await updateCalendarEvent(e, token);
+    if(msgEl){ msgEl.textContent = 'Updated · synced to Calendar'; setTimeout(() => msgEl.textContent = '', 2000); }
+  } catch(err){
+    if(msgEl){ msgEl.textContent = 'Updated (Calendar sync failed)'; setTimeout(() => msgEl.textContent = '', 2500); }
+    showError('Could not sync changes to Calendar: ' + err.message);
   }
 }
 
