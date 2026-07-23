@@ -378,23 +378,20 @@ select{ cursor: pointer; }
 .recap-range-row{ display:flex; align-items:center; gap:8px; padding: 0 16px 12px; flex-wrap:wrap; }
 .recap-range-row select{ font-family:var(--sans); font-size:12.5px; padding:5px 8px; flex:1; min-width:120px; }
 #recap-list{ flex:1; overflow-y:auto; padding: 10px 16px; }
-.recap-day{ font-family: var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color: var(--ink-faint); margin: 14px 0 6px; }
+.recap-day{ font-family: var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color: var(--ink-faint); margin: 18px 0 8px; }
 .recap-day:first-child{ margin-top:0; }
-.recap-entry{ padding:6px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+.recap-entry{ padding:10px 0; border-bottom:1px solid var(--line); cursor:pointer; }
 .recap-entry:hover .recap-entry-title{ color: var(--amber); }
-.recap-entry-title{ font-size:13px; color: var(--ink); }
-.recap-entry-sub{ font-size:11.5px; color: var(--ink-dim); margin-top:2px; }
-.recap-actions{ display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--line); flex-shrink:0; flex-wrap: wrap; }
-.recap-type-row{
-  display:flex; gap:14px; padding: 10px 16px; border-bottom: 1px solid var(--line);
-  font-family: var(--mono); font-size: 11px; color: var(--ink-dim); flex-shrink:0; flex-wrap:wrap;
+.recap-entry-top{ display:flex; align-items:baseline; gap:8px; }
+.recap-entry-type{
+  font-family: var(--mono); font-size: 9px; text-transform:uppercase; letter-spacing:.06em;
+  color: var(--ink-faint); background: var(--bg-panel-raised); padding:1px 7px; border-radius:20px; flex-shrink:0;
 }
-.recap-type-row label{ display:flex; align-items:center; gap:5px; cursor:pointer; }
-.recap-type-row input{ accent-color: var(--amber); cursor:pointer; }
-.recap-ai-panel{ border-top:1px solid var(--line); padding: 14px 16px; flex-shrink:0; max-height: 240px; overflow-y:auto; }
-.recap-ai-loading{ font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); }
-.recap-ai-error{ font-family: var(--mono); font-size: 11.5px; color: #c17a5c; }
-.recap-ai-text{ font-family: var(--sans); font-size: 13.5px; line-height: 1.6; color: var(--ink); }
+.recap-entry-title{ font-size:13.5px; color: var(--ink); line-height:1.4; }
+.recap-entry-detail{ margin-top:6px; padding-left:2px; }
+.recap-entry-line{ font-size:12px; color: var(--ink-dim); line-height:1.6; margin-bottom:3px; }
+.recap-entry-line:last-child{ margin-bottom:0; }
+.recap-actions{ display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--line); flex-shrink:0; }
 .recap-actions button{ flex:1; }
 .recap-empty{ padding:30px 10px; text-align:center; color: var(--ink-faint); font-size:13px; }
 @media (max-width: 700px){
@@ -712,23 +709,10 @@ document.getElementById('app').innerHTML = `
         <span style="color:var(--ink-faint); font-size:11px;">to</span>
         <select id="recap-to"><option value="">— Now —</option></select>
       </div>
-      <div class="recap-type-row">
-        <label><input type="checkbox" class="recap-type-check" value="session" checked> Sessions</label>
-        <label><input type="checkbox" class="recap-type-check" value="paper" checked> Papers</label>
-        <label><input type="checkbox" class="recap-type-check" value="decision" checked> Decisions</label>
-        <label><input type="checkbox" class="recap-type-check" value="account" checked> Accounts</label>
-      </div>
       <div id="recap-list"></div>
       <div class="recap-actions">
         <button class="btn-add" id="recap-copy-btn" type="button">Copy as text</button>
         <button class="btn-add" id="recap-download-btn" type="button">Download as Markdown</button>
-        <button class="btn-add" id="recap-ai-btn" type="button">✨ Summarize with AI</button>
-      </div>
-      <div id="recap-ai-panel" class="recap-ai-panel" style="display:none;">
-        <div id="recap-ai-body"></div>
-        <div class="recap-actions" id="recap-ai-actions" style="display:none;">
-          <button class="btn-add" id="recap-ai-copy-btn" type="button">Copy summary</button>
-        </div>
       </div>
     </div>
   </div>
@@ -2105,19 +2089,19 @@ function recapEntryDetail(e){
 }
 
 function resolveRecapEntries(scope, fromId, toId){
-  const sorted = [...entries].sort((a,b) => (a.date||'').localeCompare(b.date||'') || String(a.id).localeCompare(String(b.id)));
+  const sorted = [...entries].sort((a,b) => (a.created_at||'').localeCompare(b.created_at||'') || (a.date||'').localeCompare(b.date||''));
 
   if(scope === 'since-last-session'){
     const sessions = sorted.filter(e => e.type === 'session');
     if(sessions.length < 2) return sorted;
-    const cutoffDate = sessions[sessions.length - 2].date || '';
-    return sorted.filter(e => (e.date || '') > cutoffDate);
+    const cutoff = sessions[sessions.length - 2].created_at || '';
+    return sorted.filter(e => (e.created_at || '') > cutoff);
   }
   if(scope === 'since-last-milestone'){
     const milestones = sorted.filter(e => e.is_milestone);
     if(milestones.length === 0) return sorted;
-    const lastDate = milestones[milestones.length - 1].date || '';
-    return sorted.filter(e => (e.date || '') >= lastDate);
+    const cutoff = milestones[milestones.length - 1].created_at || '';
+    return sorted.filter(e => (e.created_at || '') >= cutoff);
   }
   if(scope === 'last-7' || scope === 'last-30'){
     const days = scope === 'last-7' ? 7 : 30;
@@ -2141,18 +2125,12 @@ function populateRecapMilestoneSelects(){
   $('#recap-to').innerHTML = '<option value="">— Now —</option>' + opts;
 }
 
-function selectedRecapTypes(){
-  return [...document.querySelectorAll('.recap-type-check:checked')].map(c => c.value);
-}
-
 function renderRecap(){
   const scope = $('#recap-scope').value;
   $('#recap-range-row').style.display = scope === 'custom' ? 'flex' : 'none';
   const fromId = $('#recap-from').value || null;
   const toId = $('#recap-to').value || null;
-  const types = selectedRecapTypes();
-  const scoped = resolveRecapEntries(scope, fromId, toId).filter(e => types.includes(e.type));
-  document.getElementById('recap-ai-panel').style.display = 'none';
+  const scoped = resolveRecapEntries(scope, fromId, toId);
 
   const list = $('#recap-list');
   if(scoped.length === 0){
@@ -2164,12 +2142,13 @@ function renderRecap(){
   list.innerHTML = scoped.map(e => {
     const dateChanged = e.date !== lastDate;
     lastDate = e.date;
-    const detail = recapEntryDetail(e).join(' · ');
+    const detailLines = recapEntryDetail(e);
+    const typeLabel = e.type.charAt(0).toUpperCase() + e.type.slice(1);
     return `
       ${dateChanged ? `<div class="recap-day">${e.date ? fmtDate(e.date) : 'Undated'}</div>` : ''}
       <div class="recap-entry" onclick="document.getElementById('recap-modal').classList.remove('open'); jumpToEntry('${e.id}');">
-        <div class="recap-entry-title">${escapeHtml(recapEntrySummary(e))}</div>
-        ${detail ? `<div class="recap-entry-sub">${escapeHtml(detail)}</div>` : ''}
+        <div class="recap-entry-top"><span class="recap-entry-type">${typeLabel}</span><div class="recap-entry-title">${escapeHtml(recapEntrySummary(e))}</div></div>
+        ${detailLines.length ? `<div class="recap-entry-detail">${detailLines.map(l => `<div class="recap-entry-line">${escapeHtml(l)}</div>`).join('')}</div>` : ''}
       </div>`;
   }).join('');
 }
@@ -2191,8 +2170,7 @@ function buildRecapText(markdown){
   const scope = $('#recap-scope').value;
   const fromId = $('#recap-from').value || null;
   const toId = $('#recap-to').value || null;
-  const types = selectedRecapTypes();
-  const scoped = resolveRecapEntries(scope, fromId, toId).filter(e => types.includes(e.type));
+  const scoped = resolveRecapEntries(scope, fromId, toId);
   const title = recapScopeLabel();
 
   let out = markdown ? `# ${title}\n\n` : `${title}\n${'='.repeat(title.length)}\n\n`;
@@ -2228,54 +2206,6 @@ document.getElementById('recap-modal').addEventListener('click', (ev) => {
 document.getElementById('recap-scope').addEventListener('change', renderRecap);
 document.getElementById('recap-from').addEventListener('change', renderRecap);
 document.getElementById('recap-to').addEventListener('change', renderRecap);
-document.querySelectorAll('.recap-type-check').forEach(c => c.addEventListener('change', renderRecap));
-
-document.getElementById('recap-ai-btn').addEventListener('click', async () => {
-  const btn = document.getElementById('recap-ai-btn');
-  const panel = document.getElementById('recap-ai-panel');
-  const body = document.getElementById('recap-ai-body');
-  const actions = document.getElementById('recap-ai-actions');
-
-  const text = buildRecapText(false);
-  const scopeLabel = recapScopeLabel();
-
-  panel.style.display = 'block';
-  actions.style.display = 'none';
-  body.innerHTML = `<div class="recap-ai-loading">Summarizing…</div>`;
-  btn.disabled = true;
-
-  try{
-    const res = await fetch('/api/summarize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, scopeLabel })
-    });
-    const data = await res.json();
-    if(!res.ok || data.error){
-      body.innerHTML = `<div class="recap-ai-error">Could not generate a summary: ${escapeHtml(data.error || 'unknown error')}</div>`;
-    } else {
-      body.innerHTML = `<div class="recap-ai-text">${escapeHtml(data.summary).replace(/\n/g, '<br>')}</div>`;
-      actions.style.display = 'flex';
-    }
-  } catch(err){
-    body.innerHTML = `<div class="recap-ai-error">Could not reach the summarizer: ${escapeHtml(err.message)}</div>`;
-  }
-  btn.disabled = false;
-});
-
-document.getElementById('recap-ai-copy-btn').addEventListener('click', async () => {
-  const btn = document.getElementById('recap-ai-copy-btn');
-  const summaryEl = document.querySelector('#recap-ai-body .recap-ai-text');
-  if(!summaryEl) return;
-  try{
-    await navigator.clipboard.writeText(summaryEl.textContent);
-    const orig = btn.textContent;
-    btn.textContent = 'Copied';
-    setTimeout(() => btn.textContent = orig, 1500);
-  } catch(err){
-    showError('Could not copy: ' + err.message);
-  }
-});
 
 document.getElementById('recap-copy-btn').addEventListener('click', async () => {
   const btn = document.getElementById('recap-copy-btn');

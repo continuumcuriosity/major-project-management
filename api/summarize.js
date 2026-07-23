@@ -30,7 +30,7 @@ Recap:`;
 
   try {
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,7 +43,11 @@ Recap:`;
     const data = await geminiRes.json();
 
     if (!geminiRes.ok) {
-      return res.status(500).json({ error: data?.error?.message || 'Gemini API error' });
+      const rawMsg = data?.error?.message || 'Gemini API error';
+      const friendly = /free_tier_requests|free_tier_input_token_count/.test(rawMsg)
+        ? 'Gemini says this model has no free quota on your project (this usually means the model name is deprecated/unsupported for free tier, or the API key needs regenerating at aistudio.google.com). Raw error: ' + rawMsg
+        : rawMsg;
+      return res.status(500).json({ error: friendly });
     }
 
     const summary = data?.candidates?.[0]?.content?.parts?.[0]?.text;
