@@ -767,6 +767,7 @@ async function fetchFromCrossref(doi, infoEl){
 }
 
 document.getElementById('todo-toggle').addEventListener('click', () => {
+  document.getElementById('milestone-panel').classList.remove('open');
   document.getElementById('todo-panel').classList.toggle('open');
 });
 document.getElementById('todo-close').addEventListener('click', () => {
@@ -774,6 +775,7 @@ document.getElementById('todo-close').addEventListener('click', () => {
 });
 
 document.getElementById('milestone-toggle').addEventListener('click', () => {
+  document.getElementById('todo-panel').classList.remove('open');
   document.getElementById('milestone-panel').classList.toggle('open');
 });
 document.getElementById('milestone-close').addEventListener('click', () => {
