@@ -762,7 +762,11 @@ let activeTagFilter = null;
 const $ = (sel) => document.querySelector(sel);
 const timeline = $('#timeline');
 
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function todayStr(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
 ['s-date','p-date','d-date','a-date'].forEach(id => { const el = document.getElementById(id); if(el) el.value = todayStr(); });
 
 async function loadEntries(){
