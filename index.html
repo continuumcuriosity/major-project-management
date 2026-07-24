@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -624,6 +625,21 @@ document.getElementById('app').innerHTML = `
 
     <div id="error-slot"></div>
 
+    <div class="composer" id="pdf-import-panel" style="margin-bottom:14px;">
+      <div class="type-tabs" style="justify-content:space-between; align-items:center;">
+        <span style="padding:6px 12px; font-family:var(--sans); font-size:13.5px; color:var(--ink);">Import decision points from PDF</span>
+      </div>
+      <div style="padding:14px 18px 16px;">
+        <div class="field-row">
+          <div class="field" style="flex:0 0 auto;">
+            <input type="file" id="pdf-input" accept="application/pdf" style="width:auto;">
+          </div>
+          <button class="btn-add" id="pdf-import-btn" type="button">Extract & Import</button>
+        </div>
+        <div id="pdf-import-status" style="font-family:var(--mono); font-size:11.5px; color:var(--ink-dim); margin-top:8px;"></div>
+      </div>
+    </div>
+
     <div class="composer" id="pending-cal-panel" style="margin-bottom:14px;">
       <div class="type-tabs" style="justify-content:space-between; align-items:center;">
         <span style="padding:6px 12px; font-family:var(--sans); font-size:13.5px; color:var(--ink);">Pending calendar events</span>
@@ -926,6 +942,83 @@ document.getElementById('signout-btn').addEventListener('click', async () => {
 $('#search-box').addEventListener('input', (e) => {
   searchQuery = e.target.value.trim().toLowerCase();
   render();
+});
+
+// PDF Import Logic
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+document.getElementById('pdf-import-btn').addEventListener('click', async () => {
+  const fileInput = document.getElementById('pdf-input');
+  const statusEl = document.getElementById('pdf-import-status');
+  const file = fileInput.files[0];
+
+  if (!file) {
+    statusEl.textContent = 'Please select a PDF file first.';
+    statusEl.style.color = '#c17a5c';
+    return;
+  }
+
+  statusEl.textContent = 'Reading PDF...';
+  statusEl.style.color = 'var(--ink-dim)';
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+    let fullText = '';
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str).join(' ');
+      fullText += pageText + '\n';
+    }
+
+    statusEl.textContent = 'Extracting decision points...';
+
+    const res = await fetch('/api/extract-roadmap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: fullText })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Extraction failed');
+
+    const items = data.items || [];
+    if (items.length === 0) {
+      statusEl.textContent = 'No decision points found in PDF.';
+      statusEl.style.color = '#c17a5c';
+      return;
+    }
+
+    // Import as decision entries
+    let imported = 0;
+    for (const item of items) {
+      const payload = {
+        type: 'decision',
+        date: todayStr(),
+        decision: item.choice || item.title,
+        rationale: item.rationale || '',
+        outcome: 'pending'
+      };
+
+      const { error } = await supabaseClient.from('entries').insert(payload);
+      if (!error) imported++;
+    }
+
+    statusEl.textContent = `Successfully imported ${imported} decision points.`;
+    statusEl.style.color = '#4f7043';
+    fileInput.value = '';
+
+    // Reload entries to show new decisions
+    await loadEntries();
+    render();
+
+  } catch (err) {
+    statusEl.textContent = 'Error: ' + err.message;
+    statusEl.style.color = '#c17a5c';
+    console.error('PDF import error:', err);
+  }
 });
 
 (function initTheme(){
