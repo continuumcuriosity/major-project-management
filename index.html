@@ -406,6 +406,58 @@ select{ cursor: pointer; }
 }
 .recap-type-row label{ display:flex; align-items:center; gap:5px; cursor:pointer; }
 .recap-type-row input{ accent-color: var(--amber); cursor:pointer; }
+.archive-toggle{
+  position: fixed; right: 18px; bottom: 18px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--bg-panel-raised); border: 1px solid var(--line); color: var(--amber);
+  font-family: var(--mono); font-size: 17px; cursor: pointer; z-index: 40;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 4px 14px -6px #00000088;
+}
+.archive-toggle:hover{ border-color: var(--amber); }
+.archive-modal{
+  position: fixed; inset:0; background: #00000099; z-index: 60;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none; transition: opacity .15s;
+}
+.archive-modal.open{ opacity:1; pointer-events:auto; }
+.archive-modal-inner{
+  width: min(760px, 94vw); height: min(680px, 88vh); background: var(--bg-panel);
+  border:1px solid var(--line); border-radius: var(--radius); display:flex; flex-direction:column; overflow:hidden;
+}
+.archive-header{ display:flex; align-items:center; gap:14px; padding:12px 16px; border-bottom:1px solid var(--line); flex-shrink:0; }
+.archive-tabs{ display:flex; gap:4px; }
+.archive-tab{
+  font-family: var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color: var(--ink-dim);
+  background:none; border:1px solid transparent; padding:6px 14px; border-radius: 20px; cursor:pointer;
+}
+.archive-tab.active{ color: var(--amber); border-color: var(--amber-dim); background: var(--amber-dim); }
+.archive-close{ background:none; border:none; color:var(--ink-faint); font-size:18px; cursor:pointer; margin-left:auto; }
+.archive-close:hover{ color: var(--amber); }
+.archive-body{ flex:1; overflow-y:auto; padding: 16px; }
+.gallery-upload-row{ display:flex; gap:8px; margin-bottom:16px; }
+.gallery-upload-row input[type=text]{ flex:1; }
+.gallery-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:12px; }
+.gallery-item{ border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; background: var(--bg-panel-raised); }
+.gallery-item img{ width:100%; height:120px; object-fit:cover; display:block; cursor:pointer; }
+.gallery-item-caption{ font-family: var(--sans); font-size:11.5px; color: var(--ink-dim); padding:8px 10px; line-height:1.4; }
+.gallery-item-del{ font-family: var(--mono); font-size:10px; color: var(--ink-faint); background:none; border:none; cursor:pointer; padding:0 10px 8px; }
+.gallery-item-del:hover{ color:#c17a5c; }
+.gallery-lightbox{
+  position:fixed; inset:0; background:#000000dd; z-index:70; display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none; transition: opacity .15s;
+}
+.gallery-lightbox.open{ opacity:1; pointer-events:auto; }
+.gallery-lightbox img{ max-width:90vw; max-height:90vh; border-radius:var(--radius); }
+.roadmap-form{ display:flex; flex-direction:column; gap:8px; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--line); }
+.roadmap-form input, .roadmap-form textarea{ width:100%; }
+.roadmap-item{ padding:14px 0; border-bottom:1px solid var(--line); position:relative; padding-left:20px; }
+.roadmap-item::before{ content:'●'; position:absolute; left:0; top:16px; color: var(--amber); font-size:9px; }
+.roadmap-item-title{ font-family: var(--sans); font-size:14px; font-weight:600; color: var(--ink); margin-bottom:4px; }
+.roadmap-item-choice{ font-family: var(--sans); font-size:12.5px; color: var(--amber); margin-bottom:4px; }
+.roadmap-item-rationale{ font-family: var(--sans); font-size:12.5px; color: var(--ink-dim); line-height:1.6; }
+.roadmap-item-del{ font-family: var(--mono); font-size:10px; color: var(--ink-faint); background:none; border:none; cursor:pointer; margin-top:6px; }
+.roadmap-item-del:hover{ color:#c17a5c; }
 .context-toggle{
   margin-left:auto; background:none; border:none; color: var(--ink-faint); font-family: var(--mono);
   font-size: 10.5px; cursor:pointer; text-decoration: underline dotted;
@@ -852,6 +904,42 @@ document.getElementById('app').innerHTML = `
         </div>
       </div>
     </div>
+  </div>
+
+  <button id="archive-toggle" class="archive-toggle" aria-label="Open archive">🗂</button>
+  <div id="archive-modal" class="archive-modal">
+    <div class="archive-modal-inner">
+      <div class="archive-header">
+        <div class="archive-tabs">
+          <button class="archive-tab active" data-tab="gallery">Gallery</button>
+          <button class="archive-tab" data-tab="roadmap">Roadmap</button>
+        </div>
+        <button id="archive-close" class="archive-close" aria-label="Close">×</button>
+      </div>
+      <div class="archive-body">
+        <div id="archive-tab-gallery">
+          <div class="gallery-upload-row">
+            <input type="file" id="gallery-file-input" accept="image/*">
+            <input type="text" id="gallery-caption-input" placeholder="Caption (optional)">
+            <button class="btn-add" id="gallery-upload-btn" type="button">Upload</button>
+          </div>
+          <div id="gallery-grid" class="gallery-grid"></div>
+        </div>
+        <div id="archive-tab-roadmap" style="display:none;">
+          <div class="roadmap-form">
+            <input type="text" id="roadmap-title-input" placeholder="Decision point — e.g. WordCNN vs DistilBERT">
+            <input type="text" id="roadmap-choice-input" placeholder="What you chose">
+            <textarea id="roadmap-rationale-input" rows="3" placeholder="Why — the reasoning, trade-offs, what you ruled out"></textarea>
+            <button class="btn-add" id="roadmap-add-btn" type="button" style="align-self:flex-start;">Add to roadmap</button>
+          </div>
+          <div id="roadmap-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="gallery-lightbox" class="gallery-lightbox">
+    <img id="gallery-lightbox-img" src="" alt="">
   </div>
 `;
 
@@ -2393,6 +2481,135 @@ document.getElementById('recap-scope').addEventListener('change', renderRecap);
 document.getElementById('recap-from').addEventListener('change', renderRecap);
 document.getElementById('recap-to').addEventListener('change', renderRecap);
 document.querySelectorAll('.recap-type-check').forEach(c => c.addEventListener('change', renderRecap));
+
+document.getElementById('archive-toggle').addEventListener('click', () => {
+  document.getElementById('archive-modal').classList.add('open');
+  loadGallery();
+  loadRoadmap();
+});
+document.getElementById('archive-close').addEventListener('click', () => {
+  document.getElementById('archive-modal').classList.remove('open');
+});
+document.getElementById('archive-modal').addEventListener('click', (ev) => {
+  if(ev.target.id === 'archive-modal') document.getElementById('archive-modal').classList.remove('open');
+});
+
+document.querySelectorAll('.archive-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.archive-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const which = tab.dataset.tab;
+    document.getElementById('archive-tab-gallery').style.display = which === 'gallery' ? 'block' : 'none';
+    document.getElementById('archive-tab-roadmap').style.display = which === 'roadmap' ? 'block' : 'none';
+  });
+});
+
+async function loadGallery(){
+  const grid = document.getElementById('gallery-grid');
+  const { data, error } = await supabaseClient.from('gallery_items').select('*').order('created_at', { ascending:false });
+  if(error){ grid.innerHTML = `<div style="color:var(--ink-faint); font-size:12.5px;">Could not load gallery: ${escapeHtml(error.message)}</div>`; return; }
+  if(!data || data.length === 0){ grid.innerHTML = `<div style="color:var(--ink-faint); font-size:12.5px;">No images yet.</div>`; return; }
+  grid.innerHTML = data.map(item => `
+    <div class="gallery-item">
+      <img src="${item.image_url}" alt="${escapeHtml(item.caption || '')}" onclick="openGalleryLightbox('${item.image_url}')">
+      ${item.caption ? `<div class="gallery-item-caption">${escapeHtml(item.caption)}</div>` : ''}
+      <button class="gallery-item-del" onclick="deleteGalleryItem('${item.id}', '${item.image_path}')">Delete</button>
+    </div>`).join('');
+}
+
+document.getElementById('gallery-upload-btn').addEventListener('click', async () => {
+  const fileInput = document.getElementById('gallery-file-input');
+  const captionInput = document.getElementById('gallery-caption-input');
+  const btn = document.getElementById('gallery-upload-btn');
+  const file = fileInput.files[0];
+  if(!file){ showError('Choose an image first.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Uploading…';
+  try{
+    const ext = file.name.split('.').pop();
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const { error: uploadError } = await supabaseClient.storage.from('gallery').upload(path, file);
+    if(uploadError) throw uploadError;
+
+    const { data: urlData } = supabaseClient.storage.from('gallery').getPublicUrl(path);
+    const { error: insertError } = await supabaseClient.from('gallery_items').insert({
+      image_path: path,
+      image_url: urlData.publicUrl,
+      caption: captionInput.value.trim() || null
+    });
+    if(insertError) throw insertError;
+
+    fileInput.value = '';
+    captionInput.value = '';
+    await loadGallery();
+  } catch(err){
+    showError('Upload failed: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Upload';
+  }
+});
+
+async function deleteGalleryItem(id, path){
+  if(!confirm('Delete this image?')) return;
+  await supabaseClient.storage.from('gallery').remove([path]);
+  const { error } = await supabaseClient.from('gallery_items').delete().eq('id', id);
+  if(error){ showError('Could not delete: ' + error.message); return; }
+  await loadGallery();
+}
+window.deleteGalleryItem = deleteGalleryItem;
+
+function openGalleryLightbox(url){
+  document.getElementById('gallery-lightbox-img').src = url;
+  document.getElementById('gallery-lightbox').classList.add('open');
+}
+window.openGalleryLightbox = openGalleryLightbox;
+document.getElementById('gallery-lightbox').addEventListener('click', () => {
+  document.getElementById('gallery-lightbox').classList.remove('open');
+});
+
+async function loadRoadmap(){
+  const list = document.getElementById('roadmap-list');
+  const { data, error } = await supabaseClient.from('roadmap_items').select('*').order('created_at', { ascending:true });
+  if(error){ list.innerHTML = `<div style="color:var(--ink-faint); font-size:12.5px;">Could not load roadmap: ${escapeHtml(error.message)}</div>`; return; }
+  if(!data || data.length === 0){ list.innerHTML = `<div style="color:var(--ink-faint); font-size:12.5px;">Nothing on the roadmap yet.</div>`; return; }
+  list.innerHTML = data.map(item => `
+    <div class="roadmap-item">
+      <div class="roadmap-item-title">${escapeHtml(item.title)}</div>
+      ${item.choice ? `<div class="roadmap-item-choice">→ ${escapeHtml(item.choice)}</div>` : ''}
+      ${item.rationale ? `<div class="roadmap-item-rationale">${escapeHtml(item.rationale).replace(/\n/g,'<br>')}</div>` : ''}
+      <button class="roadmap-item-del" onclick="deleteRoadmapItem('${item.id}')">Delete</button>
+    </div>`).join('');
+}
+
+document.getElementById('roadmap-add-btn').addEventListener('click', async () => {
+  const titleInput = document.getElementById('roadmap-title-input');
+  const choiceInput = document.getElementById('roadmap-choice-input');
+  const rationaleInput = document.getElementById('roadmap-rationale-input');
+  const title = titleInput.value.trim();
+  if(!title){ showError('Give this roadmap entry a title.'); return; }
+
+  const { error } = await supabaseClient.from('roadmap_items').insert({
+    title,
+    choice: choiceInput.value.trim() || null,
+    rationale: rationaleInput.value.trim() || null
+  });
+  if(error){ showError('Could not add: ' + error.message); return; }
+
+  titleInput.value = '';
+  choiceInput.value = '';
+  rationaleInput.value = '';
+  await loadRoadmap();
+});
+
+async function deleteRoadmapItem(id){
+  if(!confirm('Delete this roadmap entry?')) return;
+  const { error } = await supabaseClient.from('roadmap_items').delete().eq('id', id);
+  if(error){ showError('Could not delete: ' + error.message); return; }
+  await loadRoadmap();
+}
+window.deleteRoadmapItem = deleteRoadmapItem;
 
 document.getElementById('recap-copy-btn').addEventListener('click', async () => {
   const btn = document.getElementById('recap-copy-btn');
