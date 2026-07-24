@@ -748,6 +748,7 @@ document.getElementById('app').innerHTML = `
         <button class="btn-add" id="recap-download-btn" type="button">Download as Markdown</button>
       </div>
       <div class="recap-actions" style="padding-top:0;">
+        <input type="text" id="ollama-model-input" placeholder="llama3.1" style="flex:0 0 110px; font-size:11px; padding:6px 8px;">
         <button class="btn-add" id="recap-ai-btn" type="button" style="flex:1;">✨ Summarize with AI</button>
       </div>
       <div id="recap-ai-panel" class="recap-ai-panel" style="display:none;">
@@ -2269,6 +2270,12 @@ document.getElementById('recap-close').addEventListener('click', () => {
 document.getElementById('recap-modal').addEventListener('click', (ev) => {
   if(ev.target.id === 'recap-modal') document.getElementById('recap-modal').classList.remove('open');
 });
+const ollamaModelInput = document.getElementById('ollama-model-input');
+try{ ollamaModelInput.value = localStorage.getItem('fieldlog-ollama-model') || ''; }catch(e){}
+ollamaModelInput.addEventListener('change', () => {
+  try{ localStorage.setItem('fieldlog-ollama-model', ollamaModelInput.value.trim()); }catch(e){}
+});
+
 document.getElementById('context-toggle').addEventListener('click', () => {
   const panel = document.getElementById('context-panel');
   const isOpen = panel.style.display === 'block';
@@ -2322,7 +2329,7 @@ function buildSummarizePrompt(text, scopeLabel){
     : '';
   return `You are helping a graduate researcher recap their own research log. Below is a raw, already-distilled log covering: "${scopeLabel}".
 ${contextBlock}
-Use the project context above (if present) to understand the actual research goal, terminology, dataset names, and milestone meanings — don't treat log entries as generic bullet points, interpret them against that background. Write a clear, well-organized narrative recap in plain prose — a few short paragraphs, not just repeating the bullet list back. Group related work together, call out any milestones or key decisions explicitly, and note any open questions or next steps at the end. Do not invent facts, numbers, or results that are not present in the log below. If the log is sparse, keep the recap short rather than padding it.
+Use the project context above (if present) to understand the actual research goal, terminology, dataset names, and milestone meanings — don't treat log entries as generic bullet points, interpret them against that background. Write a clear, well-organized narrative recap in plain prose — 2-3 short paragraphs MAXIMUM, aim for under 150 words total. Do not pad or over-elaborate. Group related work together, call out any milestones or key decisions explicitly, and note any open questions or next steps at the end in one line. Do not invent facts, numbers, or results that are not present in the log below. If the log is sparse, keep the recap even shorter rather than padding it.
 
 --- LOG START ---
 ${text}
@@ -2333,19 +2340,21 @@ Recap:`;
 
 async function summarizeWithOllama(text, scopeLabel){
   const prompt = buildSummarizePrompt(text, scopeLabel);
+  let model = 'llama3.1';
+  try{ model = localStorage.getItem('fieldlog-ollama-model') || 'llama3.1'; }catch(e){}
   let res;
   try{
     res = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'llama3.1', prompt, stream: false })
+      body: JSON.stringify({ model, prompt, stream: false })
     });
   } catch(err){
     throw new Error('Could not reach Ollama at localhost:11434. Checklist: (1) ollama serve is running with OLLAMA_ORIGINS including this site, (2) Chrome may need you to grant "Local network access" for this site — check the site info icon (🔒/ⓘ) next to the URL bar, or chrome://settings/content/localNetworkAccess.');
   }
   if(!res.ok) throw new Error('Ollama returned an error (HTTP ' + res.status + ')');
   const data = await res.json();
-  if(!data.response) throw new Error('Ollama returned no text — check the model name matches what you pulled (ollama list)');
+  if(!data.response) throw new Error(`Ollama returned no text for model "${model}" — check it matches what you pulled (ollama list)`);
   return data.response;
 }
 
