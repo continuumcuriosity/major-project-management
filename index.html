@@ -2256,11 +2256,11 @@ backendSelect.addEventListener('change', () => {
 
 document.getElementById('recap-copy-btn').addEventListener('click', async () => {
   const btn = document.getElementById('recap-copy-btn');
+  if(!btn.dataset.origLabel) btn.dataset.origLabel = btn.textContent;
   try{
     await navigator.clipboard.writeText(buildRecapText(false));
-    const orig = btn.textContent;
     btn.textContent = 'Copied';
-    setTimeout(() => btn.textContent = orig, 1500);
+    setTimeout(() => btn.textContent = btn.dataset.origLabel, 1500);
   } catch(err){
     showError('Could not copy: ' + err.message);
   }
@@ -2277,7 +2277,7 @@ document.getElementById('recap-download-btn').addEventListener('click', () => {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
 function buildSummarizePrompt(text, scopeLabel){
@@ -2350,13 +2350,13 @@ document.getElementById('recap-ai-btn').addEventListener('click', async () => {
 
 document.getElementById('recap-ai-copy-btn').addEventListener('click', async () => {
   const btn = document.getElementById('recap-ai-copy-btn');
+  if(!btn.dataset.origLabel) btn.dataset.origLabel = btn.textContent;
   const summaryEl = document.querySelector('#recap-ai-body .recap-ai-text');
   if(!summaryEl) return;
   try{
     await navigator.clipboard.writeText(summaryEl.textContent);
-    const orig = btn.textContent;
     btn.textContent = 'Copied';
-    setTimeout(() => btn.textContent = orig, 1500);
+    setTimeout(() => btn.textContent = btn.dataset.origLabel, 1500);
   } catch(err){
     showError('Could not copy: ' + err.message);
   }
