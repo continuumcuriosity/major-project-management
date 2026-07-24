@@ -1,10 +1,10 @@
 // Extracts structured decision points from PDF text for the roadmap feature.
 // Body: { text: string }
 //
-// Uses Vercel AI Gateway to parse raw text into JSON decision points.
+// Uses local Ollama to parse raw text into JSON decision points.
 // Returns: { ok: true, items: [{title, choice, rationale}] }
 
-const MODEL = 'anthropic/claude-haiku-4-5';
+const MODEL = 'llama3.1';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -15,9 +15,6 @@ export default async function handler(req, res) {
 
   if (!text || !text.trim()) {
     return res.status(400).json({ error: 'No text provided' });
-  }
-  if (!process.env.AI_GATEWAY_API_KEY) {
-    return res.status(500).json({ error: 'AI_GATEWAY_API_KEY is not set on the server' });
   }
 
   const prompt = `You are extracting decision points from a research chat log for a roadmap visualization. Parse the following text into a JSON array of decision points. Each point should have:
@@ -35,25 +32,22 @@ TEXT TO PARSE:
 ${text}`;
 
   try {
-    const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
+    const response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.AI_GATEWAY_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1000
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: MODEL, prompt, stream: false })
     });
 
-    const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.error?.message || `AI Gateway error (HTTP ${response.status})`);
+      throw new Error(`Ollama returned an error (HTTP ${response.status})`);
     }
 
-    const content = data.choices?.[0]?.message?.content?.trim();
+    const data = await response.json();
+    if (!data.response) {
+      throw new Error('Ollama returned no text — check the model name matches what you pulled (ollama list)');
+    }
+
+    const content = data.response.trim();
     if (!content) {
       throw new Error('No content returned');
     }
