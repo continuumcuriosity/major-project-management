@@ -503,8 +503,23 @@ select{ cursor: pointer; }
 </footer>
 
 <script>
+console.log('Starting app initialization...');
 const NEEDS_SETUP = window.__SUPABASE_URL__.includes('YOUR_') || window.__SUPABASE_ANON_KEY__.includes('YOUR_');
-const supabase = NEEDS_SETUP ? null : window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
+console.log('NEEDS_SETUP:', NEEDS_SETUP);
+
+let supabase;
+try {
+  supabase = NEEDS_SETUP ? null : window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
+  console.log('Supabase client created:', !!supabase);
+} catch(e) {
+  console.error('Failed to create Supabase client:', e);
+  document.getElementById('app').innerHTML = `
+    <div class="setup login-screen">
+      <h2>Configuration error</h2>
+      <p style="color:#c17a5c;">Failed to initialize Supabase client: ${escapeHtml(e.message || String(e))}</p>
+      <p>Check the browser console (F12) for more details.</p>
+    </div>`;
+}
 
 if (NEEDS_SETUP) {
   document.getElementById('app').innerHTML = `
@@ -520,20 +535,29 @@ if (NEEDS_SETUP) {
       </ol>
       <p>Full walkthrough is in <code>README.md</code>.</p>
     </div>`;
-} else {
+} else if (supabase) {
+  console.log('Calling checkAuthAndStart...');
   checkAuthAndStart();
+} else {
+  console.error('Supabase client is null, cannot proceed');
 }
 
 async function checkAuthAndStart(){
+  console.log('checkAuthAndStart called');
   try{
+    console.log('Getting session...');
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('Session result:', { session: !!session, error: sessionError });
     if(sessionError) throw sessionError;
     if(session){
+      console.log('Session exists, initializing app');
       initApp();
     } else {
+      console.log('No session, showing login screen');
       showLoginScreen();
     }
     supabase.auth.onAuthStateChange((event) => {
+      console.log('Auth state change:', event);
       if(event === 'SIGNED_IN' && !document.getElementById('timeline')){
         initApp();
       }
@@ -542,6 +566,7 @@ async function checkAuthAndStart(){
       }
     });
   } catch(err){
+    console.error('Auth check failed:', err);
     document.getElementById('app').innerHTML = `
       <div class="setup login-screen">
         <h2>Couldn't start the app</h2>
@@ -549,11 +574,11 @@ async function checkAuthAndStart(){
         <p>Open the browser console (F12) for more detail. If this mentions your Supabase URL/key, double-check the CONFIG block near the top of index.html.</p>
         <button class="btn-add" onclick="location.reload()">Retry</button>
       </div>`;
-    console.error('Auth check failed:', err);
   }
 }
 
 function showLoginScreen(errorMsg){
+  console.log('showLoginScreen called with error:', errorMsg);
   document.getElementById('app').innerHTML = `
     <div class="setup login-screen">
       <h2>Sign in</h2>
@@ -563,6 +588,7 @@ function showLoginScreen(errorMsg){
       <div id="login-error" style="color:#c17a5c; font-size:12.5px; margin-bottom:10px;">${errorMsg ? escapeHtml(errorMsg) : ''}</div>
       <button class="btn-add" id="login-submit-btn" type="button">Sign in</button>
     </div>`;
+  console.log('Login screen HTML set');
 
   const submit = async () => {
     const email = document.getElementById('login-email').value.trim();
