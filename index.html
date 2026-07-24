@@ -507,10 +507,10 @@ console.log('Starting app initialization...');
 const NEEDS_SETUP = window.__SUPABASE_URL__.includes('YOUR_') || window.__SUPABASE_ANON_KEY__.includes('YOUR_');
 console.log('NEEDS_SETUP:', NEEDS_SETUP);
 
-let supabase;
+let supabaseClient;
 try {
-  supabase = NEEDS_SETUP ? null : window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
-  console.log('Supabase client created:', !!supabase);
+  supabaseClient = NEEDS_SETUP ? null : window.supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__);
+  console.log('Supabase client created:', !!supabaseClient);
 } catch(e) {
   console.error('Failed to create Supabase client:', e);
   document.getElementById('app').innerHTML = `
@@ -535,7 +535,7 @@ if (NEEDS_SETUP) {
       </ol>
       <p>Full walkthrough is in <code>README.md</code>.</p>
     </div>`;
-} else if (supabase) {
+} else if (supabaseClient) {
   console.log('Calling checkAuthAndStart...');
   checkAuthAndStart();
 } else {
@@ -546,7 +546,7 @@ async function checkAuthAndStart(){
   console.log('checkAuthAndStart called');
   try{
     console.log('Getting session...');
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
     console.log('Session result:', { session: !!session, error: sessionError });
     if(sessionError) throw sessionError;
     if(session){
@@ -556,7 +556,7 @@ async function checkAuthAndStart(){
       console.log('No session, showing login screen');
       showLoginScreen();
     }
-    supabase.auth.onAuthStateChange((event) => {
+    supabaseClient.auth.onAuthStateChange((event) => {
       console.log('Auth state change:', event);
       if(event === 'SIGNED_IN' && !document.getElementById('timeline')){
         initApp();
@@ -595,7 +595,7 @@ function showLoginScreen(errorMsg){
     const password = document.getElementById('login-password').value;
     const errEl = document.getElementById('login-error');
     errEl.textContent = 'Signing in…';
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if(error){ errEl.textContent = error.message; }
     // onAuthStateChange fires initApp() automatically on success
   };
@@ -878,21 +878,21 @@ function todayStr(){ return new Date().toISOString().slice(0,10); }
 let projectContext = '';
 
 async function loadProjectContext(){
-  const { data, error } = await supabase.from('project_context').select('content').eq('id', 1).maybeSingle();
+  const { data, error } = await supabaseClient.from('project_context').select('content').eq('id', 1).maybeSingle();
   if(!error && data){
     projectContext = data.content || '';
   }
 }
 
 async function saveProjectContext(text){
-  const { error } = await supabase.from('project_context').upsert({ id: 1, content: text });
+  const { error } = await supabaseClient.from('project_context').upsert({ id: 1, content: text });
   if(error){ showError('Could not save project context: ' + error.message); return false; }
   projectContext = text;
   return true;
 }
 
 async function loadEntries(){
-  const { data, error } = await supabase.from('entries').select('*').order('date', { ascending:false }).order('created_at', { ascending:false });
+  const { data, error } = await supabaseClient.from('entries').select('*').order('date', { ascending:false }).order('created_at', { ascending:false });
   if(error){
     showError('Could not load entries: ' + error.message);
     entries = [];
@@ -920,7 +920,7 @@ document.querySelectorAll('.type-tab').forEach(tab => {
 });
 
 document.getElementById('signout-btn').addEventListener('click', async () => {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
 });
 
 $('#search-box').addEventListener('input', (e) => {
@@ -1350,9 +1350,9 @@ if(type === 'session'){
 
     let data, error;
     if(isEdit){
-      ({ data, error } = await supabase.from('entries').update(payload).eq('id', editingId).select());
+      ({ data, error } = await supabaseClient.from('entries').update(payload).eq('id', editingId).select());
     } else {
-      ({ data, error } = await supabase.from('entries').insert(payload).select());
+      ({ data, error } = await supabaseClient.from('entries').insert(payload).select());
     }
     btn.disabled = false;
 
@@ -1466,7 +1466,7 @@ async function deleteEntry(id){
       showError('Could not delete from Calendar (deleting local entry anyway): ' + err.message);
     }
   }
-  const { error } = await supabase.from('entries').delete().eq('id', id);
+  const { error } = await supabaseClient.from('entries').delete().eq('id', id);
   if(error){ showError('Could not delete: ' + error.message); return; }
   entries = entries.filter(e => e.id !== id);
   render();
@@ -1947,7 +1947,7 @@ function renderTodo(){
 }
 
 async function toggleNextDone(id, newVal){
-  const { data, error } = await supabase.from('entries').update({ next_done: newVal }).eq('id', id).select();
+  const { data, error } = await supabaseClient.from('entries').update({ next_done: newVal }).eq('id', id).select();
   if(error){ showError('Could not update: ' + error.message); return; }
   entries = entries.map(x => x.id === id ? data[0] : x);
   render();
@@ -1960,7 +1960,7 @@ async function markCalendarAdded(id){
   // with no real confirmation from Google.
   const e = entries.find(x => x.id === id);
   if(e && e.calendar_added) return;
-  const { data, error } = await supabase.from('entries').update({ calendar_added: true }).eq('id', id).select();
+  const { data, error } = await supabaseClient.from('entries').update({ calendar_added: true }).eq('id', id).select();
   if(error) return;
   entries = entries.map(x => x.id === id ? data[0] : x);
   render();
@@ -2024,7 +2024,7 @@ async function reallyDeleteCalendarEvent(e, token){
 }
 
 async function clearCalendarFields(id){
-  const { data, error } = await supabase.from('entries')
+  const { data, error } = await supabaseClient.from('entries')
     .update({ calendar_added: false, calendar_event_link: null, calendar_event_id: null })
     .eq('id', id).select();
   if(error){ showError('Could not unlink locally: ' + error.message); return; }
@@ -2045,7 +2045,7 @@ async function createCalendarEvent(e, token){
     const data = await res.json();
     if(!res.ok) throw new Error(data.error?.message || 'Calendar API error');
 
-    const { data: updated, error } = await supabase.from('entries')
+    const { data: updated, error } = await supabaseClient.from('entries')
   .update({ calendar_added: true, calendar_event_link: data.htmlLink, calendar_event_id: data.id })
   .eq('id', e.id).select();
     if(error){ showError('Event created in Calendar, but could not save the link locally: ' + error.message); return; }
@@ -2098,7 +2098,7 @@ async function updateCalendarEvent(e, token){
   const data = await res.json();
   if(!res.ok) throw new Error(data.error?.message || 'Calendar API error');
 
-  const { data: updated, error } = await supabase.from('entries')
+  const { data: updated, error } = await supabaseClient.from('entries')
     .update({ calendar_event_link: data.htmlLink })
     .eq('id', e.id).select();
   if(!error && updated?.[0]){
@@ -2138,7 +2138,7 @@ async function checkForNewCalendarEvents(){
 document.getElementById('cal-check-btn').addEventListener('click', checkForNewCalendarEvents);
 
 async function loadPendingCalendarEvents(){
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('calendar_review_queue')
     .select('*')
     .eq('status', 'pending')
