@@ -399,6 +399,14 @@ select{ cursor: pointer; }
 }
 .recap-type-row label{ display:flex; align-items:center; gap:5px; cursor:pointer; }
 .recap-type-row input{ accent-color: var(--amber); cursor:pointer; }
+.context-toggle{
+  margin-left:auto; background:none; border:none; color: var(--ink-faint); font-family: var(--mono);
+  font-size: 10.5px; cursor:pointer; text-decoration: underline dotted;
+}
+.context-toggle:hover{ color: var(--amber); }
+.context-panel{ padding: 12px 16px; border-bottom: 1px solid var(--line); flex-shrink:0; }
+.context-hint{ font-size: 11px; color: var(--ink-faint); line-height:1.5; margin-bottom:8px; }
+#context-textarea{ min-height: 90px; font-family: var(--sans); font-size: 13px; }
 .recap-ai-panel{ border-top:1px solid var(--line); padding: 14px 16px; flex-shrink:0; max-height: 240px; overflow-y:auto; }
 .recap-ai-loading{ font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); }
 .recap-ai-error{ font-family: var(--mono); font-size: 11.5px; color: #c17a5c; }
@@ -725,6 +733,14 @@ document.getElementById('app').innerHTML = `
         <label><input type="checkbox" class="recap-type-check" value="paper" checked> Papers</label>
         <label><input type="checkbox" class="recap-type-check" value="decision" checked> Decisions</label>
         <label><input type="checkbox" class="recap-type-check" value="account" checked> Accounts</label>
+        <button id="context-toggle" type="button" class="context-toggle">✎ Project context</button>
+      </div>
+      <div id="context-panel" class="context-panel" style="display:none;">
+        <p class="context-hint">This background gets sent along with every AI summary, so it understands your actual research goal instead of guessing from bullet points alone.</p>
+        <textarea id="context-textarea" placeholder="e.g. Project goal, key terminology, dataset name, what each milestone means..."></textarea>
+        <div class="recap-actions" style="padding:8px 0 0;">
+          <button class="btn-add" id="context-save-btn" type="button">Save context</button>
+        </div>
       </div>
       <div id="recap-list"></div>
       <div class="recap-actions">
@@ -765,6 +781,22 @@ const timeline = $('#timeline');
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 ['s-date','p-date','d-date','a-date'].forEach(id => { const el = document.getElementById(id); if(el) el.value = todayStr(); });
 
+let projectContext = '';
+
+async function loadProjectContext(){
+  const { data, error } = await supabase.from('project_context').select('content').eq('id', 1).maybeSingle();
+  if(!error && data){
+    projectContext = data.content || '';
+  }
+}
+
+async function saveProjectContext(text){
+  const { error } = await supabase.from('project_context').upsert({ id: 1, content: text });
+  if(error){ showError('Could not save project context: ' + error.message); return false; }
+  projectContext = text;
+  return true;
+}
+
 async function loadEntries(){
   const { data, error } = await supabase.from('entries').select('*').order('date', { ascending:false }).order('created_at', { ascending:false });
   if(error){
@@ -773,6 +805,7 @@ async function loadEntries(){
   } else {
     entries = data || [];
   }
+  await loadProjectContext();
   loaded = true;
   applyDefaultCollapse();
   refreshLinkDropdowns();
@@ -2236,6 +2269,22 @@ document.getElementById('recap-close').addEventListener('click', () => {
 document.getElementById('recap-modal').addEventListener('click', (ev) => {
   if(ev.target.id === 'recap-modal') document.getElementById('recap-modal').classList.remove('open');
 });
+document.getElementById('context-toggle').addEventListener('click', () => {
+  const panel = document.getElementById('context-panel');
+  const isOpen = panel.style.display === 'block';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if(!isOpen) document.getElementById('context-textarea').value = projectContext;
+});
+
+document.getElementById('context-save-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('context-save-btn');
+  const text = document.getElementById('context-textarea').value.trim();
+  btn.textContent = 'Saving…';
+  const ok = await saveProjectContext(text);
+  btn.textContent = ok ? 'Saved' : 'Save context';
+  if(ok) setTimeout(() => { btn.textContent = 'Save context'; }, 1500);
+});
+
 document.getElementById('recap-scope').addEventListener('change', renderRecap);
 document.getElementById('recap-from').addEventListener('change', renderRecap);
 document.getElementById('recap-to').addEventListener('change', renderRecap);
@@ -2268,9 +2317,12 @@ document.getElementById('recap-download-btn').addEventListener('click', () => {
 });
 
 function buildSummarizePrompt(text, scopeLabel){
-  return `You are helping a graduate researcher recap their own research log for the EEG/EMG spiking-network fusion project. Below is a raw, already-distilled log covering: "${scopeLabel}".
-
-Write a clear, well-organized narrative recap in plain prose — a few short paragraphs, not just repeating the bullet list back. Group related work together, call out any milestones or key decisions explicitly, and note any open questions or next steps at the end. Do not invent facts, numbers, or results that are not present in the log below. If the log is sparse, keep the recap short rather than padding it.
+  const contextBlock = projectContext.trim()
+    ? `\n--- PROJECT CONTEXT (background, not the log itself) ---\n${projectContext.trim()}\n--- END PROJECT CONTEXT ---\n`
+    : '';
+  return `You are helping a graduate researcher recap their own research log. Below is a raw, already-distilled log covering: "${scopeLabel}".
+${contextBlock}
+Use the project context above (if present) to understand the actual research goal, terminology, dataset names, and milestone meanings — don't treat log entries as generic bullet points, interpret them against that background. Write a clear, well-organized narrative recap in plain prose — a few short paragraphs, not just repeating the bullet list back. Group related work together, call out any milestones or key decisions explicitly, and note any open questions or next steps at the end. Do not invent facts, numbers, or results that are not present in the log below. If the log is sparse, keep the recap short rather than padding it.
 
 --- LOG START ---
 ${text}
