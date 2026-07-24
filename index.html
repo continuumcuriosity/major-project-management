@@ -525,20 +525,32 @@ if (NEEDS_SETUP) {
 }
 
 async function checkAuthAndStart(){
-  const { data: { session } } = await supabase.auth.getSession();
-  if(session){
-    initApp();
-  } else {
-    showLoginScreen();
-  }
-  supabase.auth.onAuthStateChange((event) => {
-    if(event === 'SIGNED_IN' && !document.getElementById('timeline')){
+  try{
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if(sessionError) throw sessionError;
+    if(session){
       initApp();
+    } else {
+      showLoginScreen();
     }
-    if(event === 'SIGNED_OUT'){
-      location.reload();
-    }
-  });
+    supabase.auth.onAuthStateChange((event) => {
+      if(event === 'SIGNED_IN' && !document.getElementById('timeline')){
+        initApp();
+      }
+      if(event === 'SIGNED_OUT'){
+        location.reload();
+      }
+    });
+  } catch(err){
+    document.getElementById('app').innerHTML = `
+      <div class="setup login-screen">
+        <h2>Couldn't start the app</h2>
+        <p style="color:#c17a5c;">${escapeHtml(err.message || String(err))}</p>
+        <p>Open the browser console (F12) for more detail. If this mentions your Supabase URL/key, double-check the CONFIG block near the top of index.html.</p>
+        <button class="btn-add" onclick="location.reload()">Retry</button>
+      </div>`;
+    console.error('Auth check failed:', err);
+  }
 }
 
 function showLoginScreen(errorMsg){
