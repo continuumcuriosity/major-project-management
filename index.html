@@ -482,6 +482,56 @@ select{ cursor: pointer; }
 .loading{ text-align:center; padding: 60px 20px; color: var(--ink-faint); font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase;}
 .error-banner{ background:#c17a5c22; border:1px solid #c17a5c66; color:#e8b39c; padding:12px 16px; border-radius: var(--radius); font-size: 13px; margin-bottom: 20px; font-family: var(--mono); }
 
+.archive-toggle{
+  position: fixed; bottom: 20px; right: 20px;
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--bg-panel-raised); border: 1px solid var(--line); color: var(--amber);
+  cursor: pointer; z-index: 40;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 4px 14px -6px #00000088;
+}
+.archive-toggle:hover{ border-color: var(--amber); }
+.archive-toggle svg{ display:block; }
+.archive-panel{
+  position: fixed; inset:0; background: #00000099; z-index: 50;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none; transition: opacity .15s;
+}
+.archive-panel.open{ opacity:1; pointer-events:auto; }
+.archive-panel-inner{
+  width: min(900px, 94vw); height: min(80vh, 88vh); background: var(--bg-panel);
+  border:1px solid var(--line); border-radius: var(--radius); display:flex; flex-direction:column; overflow:hidden;
+}
+.archive-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px; border-bottom:1px solid var(--line);
+}
+.archive-tabs{ display:flex; gap:8px; }
+.archive-tab{
+  background:none; border:none; color: var(--ink-faint);
+  font-family: var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  padding:8px 16px; cursor:pointer; border-bottom:2px solid transparent;
+}
+.archive-tab:hover{ color: var(--ink-dim); }
+.archive-tab.active{ color: var(--paper); border-bottom-color: var(--amber); }
+.archive-close{
+  background:none; border:none; color: var(--ink-faint); font-size:24px; cursor:pointer; line-height:1;
+}
+.archive-close:hover{ color: var(--amber); }
+.archive-content{ flex:1; overflow-y:auto; padding:16px; display:none; }
+.archive-content.active{ display:block; }
+.gallery-upload{ display:flex; gap:10px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--line); }
+.gallery-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:12px; }
+.gallery-item{ position:relative; aspect-ratio:1; background: var(--bg-panel-raised); border-radius: var(--radius); overflow:hidden; }
+.gallery-item img{ width:100%; height:100%; object-fit:cover; }
+.gallery-item-delete{
+  position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.7); color:#fff;
+  border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; font-size:14px;
+}
+.pdf-import-row{ display:flex; gap:10px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--line); }
+.roadmap-status{ font-family: var(--mono); font-size:11.5px; color: var(--ink-dim); margin-bottom:16px; }
+.roadmap-visual{ min-height:400px; background: var(--bg-panel-raised); border-radius: var(--radius); padding:20px; }
+
 </style>
 </head>
 <body>
@@ -502,6 +552,39 @@ select{ cursor: pointer; }
 <footer class="theme-footer">
   <button id="theme-toggle-btn" class="theme-toggle-btn">☾ Dark</button>
 </footer>
+
+<button id="archive-toggle" class="archive-toggle" aria-label="Open archive">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+  </svg>
+</button>
+
+<div id="archive-panel" class="archive-panel">
+  <div class="archive-panel-inner">
+    <div class="archive-header">
+      <div class="archive-tabs">
+        <button class="archive-tab active" data-tab="gallery">Gallery</button>
+        <button class="archive-tab" data-tab="roadmap">Roadmap</button>
+      </div>
+      <button id="archive-close" class="archive-close">×</button>
+    </div>
+    <div id="archive-content-gallery" class="archive-content active">
+      <div class="gallery-upload">
+        <input type="file" id="gallery-upload-input" accept="image/*" multiple>
+        <button class="btn-add" id="gallery-upload-btn">Upload Images</button>
+      </div>
+      <div id="gallery-grid" class="gallery-grid"></div>
+    </div>
+    <div id="archive-content-roadmap" class="archive-content">
+      <div class="pdf-import-row">
+        <input type="file" id="roadmap-pdf-input" accept="application/pdf">
+        <button class="btn-add" id="roadmap-pdf-import-btn">Import from PDF</button>
+      </div>
+      <div id="roadmap-pdf-status" class="roadmap-status"></div>
+      <div id="roadmap-visual" class="roadmap-visual"></div>
+    </div>
+  </div>
+</div>
 
 <script>
 console.log('Starting app initialization...');
@@ -624,21 +707,6 @@ document.getElementById('app').innerHTML = `
     </header>
 
     <div id="error-slot"></div>
-
-    <div class="composer" id="pdf-import-panel" style="margin-bottom:14px;">
-      <div class="type-tabs" style="justify-content:space-between; align-items:center;">
-        <span style="padding:6px 12px; font-family:var(--sans); font-size:13.5px; color:var(--ink);">Import decision points from PDF</span>
-      </div>
-      <div style="padding:14px 18px 16px;">
-        <div class="field-row">
-          <div class="field" style="flex:0 0 auto;">
-            <input type="file" id="pdf-input" accept="application/pdf" style="width:auto;">
-          </div>
-          <button class="btn-add" id="pdf-import-btn" type="button">Extract & Import</button>
-        </div>
-        <div id="pdf-import-status" style="font-family:var(--mono); font-size:11.5px; color:var(--ink-dim); margin-top:8px;"></div>
-      </div>
-    </div>
 
     <div class="composer" id="pending-cal-panel" style="margin-bottom:14px;">
       <div class="type-tabs" style="justify-content:space-between; align-items:center;">
@@ -944,12 +1012,30 @@ $('#search-box').addEventListener('input', (e) => {
   render();
 });
 
-// PDF Import Logic
+// Archive Panel Logic
+document.getElementById('archive-toggle').addEventListener('click', () => {
+  document.getElementById('archive-panel').classList.add('open');
+});
+
+document.getElementById('archive-close').addEventListener('click', () => {
+  document.getElementById('archive-panel').classList.remove('open');
+});
+
+document.querySelectorAll('.archive-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.archive-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.archive-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('archive-content-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// PDF Import Logic (now in roadmap tab)
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
-document.getElementById('pdf-import-btn').addEventListener('click', async () => {
-  const fileInput = document.getElementById('pdf-input');
-  const statusEl = document.getElementById('pdf-import-status');
+document.getElementById('roadmap-pdf-import-btn').addEventListener('click', async () => {
+  const fileInput = document.getElementById('roadmap-pdf-input');
+  const statusEl = document.getElementById('roadmap-pdf-status');
   const file = fileInput.files[0];
 
   if (!file) {
