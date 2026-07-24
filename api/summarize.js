@@ -1,61 +1,71 @@
-// Uses Google's Gemini API (free tier, no credit card required as of 2026 —
-// see aistudio.google.com to get GEMINI_API_KEY). Takes the already-distilled
-// recap text the frontend builds (buildRecapText) and asks Gemini to turn it
-// into a short narrative recap, rather than just repeating the bullet list.
+// Called by the "✨ Summarize with AI" button in the Recap panel.
+// Body: { text: string, scopeLabel: string }
+//
+// Uses Vercel AI Gateway instead of calling Gemini directly. This fixes two
+// separate problems you were hitting:
+//   1. Gemini's model names get deprecated/rotated every few months
+//      (that's exactly what "gemini-2.5-flash is no longer available to
+//      new users" was). The Gateway lets you swap MODEL below without
+//      touching auth or request shape.
+//   2. It runs entirely server-side, so there's no local-machine/CORS
+//      story at all — unlike Ollama, this works from any device, not just
+//      the laptop it's running on.
+//
+// Setup (one-time):
+//   1. Vercel dashboard → your project → Storage/AI → create an AI Gateway
+//      API key (or use an existing one — it's account-level, not per-project).
+//   2. Add it as AI_GATEWAY_API_KEY in Project Settings → Environment
+//      Variables, then redeploy.
+//   3. (Optional) On Vercel deployments you can skip the API key entirely
+//      and authenticate via Vercel's OIDC token instead — see
+//      https://vercel.com/docs/ai-gateway for that setup if you want it.
+
+const MODEL = 'anthropic/claude-haiku-4-5'; // swap this string to try a different model/provider
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { text, scopeLabel } = req.body || {};
-  if (!text) {
-    return res.status(400).json({ error: 'Missing text to summarize' });
+  const { text, scopeLabel } = req.body;
+
+  if (!text || !text.trim()) {
+    return res.status(400).json({ error: 'Nothing to summarize' });
+  }
+  if (!process.env.AI_GATEWAY_API_KEY) {
+    return res.status(500).json({ error: 'AI_GATEWAY_API_KEY is not set on the server' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is not set in Vercel environment variables' });
-  }
+  const prompt = `You're helping a researcher prep for a supervisor meeting. Below is their raw research log for "${scopeLabel || 'this period'}". Write a short, plain-spoken narrative summary — 4 to 8 sentences, one paragraph, no headers or bullet points — of what actually happened and where things stand: what was tried, what got decided (and why), what's still open. Write it the way the researcher would casually explain it out loud, not like a report.
 
-  const prompt = `You are helping a graduate researcher recap their own research log for the EEG/EMG spiking-network fusion project. Below is a raw, already-distilled log covering: "${scopeLabel}".
-
-Write a clear, well-organized narrative recap in plain prose — a few short paragraphs, not just repeating the bullet list back. Group related work together, call out any milestones or key decisions explicitly, and note any open questions or next steps at the end. Do not invent facts, numbers, or results that are not present in the log below. If the log is sparse, keep the recap short rather than padding it.
-
---- LOG START ---
-${text}
---- LOG END ---
-
-Recap:`;
+RAW LOG:
+${text}`;
 
   try {
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
-      }
-    );
+    const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.AI_GATEWAY_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 500
+      })
+    });
 
-    const data = await geminiRes.json();
-
-    if (!geminiRes.ok) {
-      const rawMsg = data?.error?.message || 'Gemini API error';
-      const friendly = /free_tier_requests|free_tier_input_token_count/.test(rawMsg)
-        ? 'Gemini says this model has no free quota on your project (this usually means the model name is deprecated/unsupported for free tier, or the API key needs regenerating at aistudio.google.com). Raw error: ' + rawMsg
-        : rawMsg;
-      return res.status(500).json({ error: friendly });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error?.message || `AI Gateway error (HTTP ${response.status})`);
     }
 
-    const summary = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const summary = data.choices?.[0]?.message?.content?.trim();
     if (!summary) {
-      return res.status(500).json({ error: 'Gemini returned no summary text' });
+      throw new Error('No summary returned');
     }
 
-    return res.status(200).json({ summary });
+    return res.status(200).json({ ok: true, summary });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

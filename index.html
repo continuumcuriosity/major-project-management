@@ -732,10 +732,6 @@ document.getElementById('app').innerHTML = `
         <button class="btn-add" id="recap-download-btn" type="button">Download as Markdown</button>
       </div>
       <div class="recap-actions" style="padding-top:0;">
-        <select id="summarize-backend" style="flex:0 0 auto; width:auto;">
-          <option value="gemini">Gemini (cloud)</option>
-          <option value="ollama">Local (Ollama)</option>
-        </select>
         <button class="btn-add" id="recap-ai-btn" type="button" style="flex:1;">✨ Summarize with AI</button>
       </div>
       <div id="recap-ai-panel" class="recap-ai-panel" style="display:none;">
@@ -1153,7 +1149,7 @@ function toggleExpand(id){
 }
 window.toggleExpand = toggleExpand;
 
-document.querySelectorAll('.btn-add').forEach(btn => {
+document.querySelectorAll('.btn-add[data-add]').forEach(btn => {
   btn.addEventListener('click', async () => {
     const type = btn.dataset.add;
     let payload = null;
@@ -2245,15 +2241,6 @@ document.getElementById('recap-from').addEventListener('change', renderRecap);
 document.getElementById('recap-to').addEventListener('change', renderRecap);
 document.querySelectorAll('.recap-type-check').forEach(c => c.addEventListener('change', renderRecap));
 
-const backendSelect = document.getElementById('summarize-backend');
-try{
-  const savedBackend = localStorage.getItem('fieldlog-summarize-backend');
-  if(savedBackend) backendSelect.value = savedBackend;
-}catch(e){}
-backendSelect.addEventListener('change', () => {
-  try{ localStorage.setItem('fieldlog-summarize-backend', backendSelect.value); }catch(e){}
-});
-
 document.getElementById('recap-copy-btn').addEventListener('click', async () => {
   const btn = document.getElementById('recap-copy-btn');
   if(!btn.dataset.origLabel) btn.dataset.origLabel = btn.textContent;
@@ -2292,33 +2279,15 @@ ${text}
 Recap:`;
 }
 
-async function summarizeWithGemini(text, scopeLabel){
+async function summarizeViaGateway(text, scopeLabel){
   const res = await fetch('/api/summarize', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, scopeLabel })
   });
   const data = await res.json();
-  if(!res.ok || data.error) throw new Error(data.error || 'Gemini returned no summary');
+  if(!res.ok || data.error) throw new Error(data.error || 'No summary returned');
   return data.summary;
-}
-
-async function summarizeWithOllama(text, scopeLabel){
-  const prompt = buildSummarizePrompt(text, scopeLabel);
-  let res;
-  try{
-    res = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'llama3.1', prompt, stream: false })
-    });
-  } catch(err){
-    throw new Error('Could not reach Ollama at localhost:11434 — is it running? (ollama serve)');
-  }
-  if(!res.ok) throw new Error('Ollama returned an error (HTTP ' + res.status + ')');
-  const data = await res.json();
-  if(!data.response) throw new Error('Ollama returned no text — check the model name matches what you pulled (ollama list)');
-  return data.response;
 }
 
 document.getElementById('recap-ai-btn').addEventListener('click', async () => {
@@ -2326,20 +2295,17 @@ document.getElementById('recap-ai-btn').addEventListener('click', async () => {
   const panel = document.getElementById('recap-ai-panel');
   const body = document.getElementById('recap-ai-body');
   const actions = document.getElementById('recap-ai-actions');
-  const backend = backendSelect.value;
 
   const text = buildRecapText(false);
   const scopeLabel = recapScopeLabel();
 
   panel.style.display = 'block';
   actions.style.display = 'none';
-  body.innerHTML = `<div class="recap-ai-loading">Summarizing via ${backend === 'ollama' ? 'local Ollama' : 'Gemini'}…</div>`;
+  body.innerHTML = `<div class="recap-ai-loading">Summarizing…</div>`;
   btn.disabled = true;
 
   try{
-    const summary = backend === 'ollama'
-      ? await summarizeWithOllama(text, scopeLabel)
-      : await summarizeWithGemini(text, scopeLabel);
+    const summary = await summarizeViaGateway(text, scopeLabel);
     body.innerHTML = `<div class="recap-ai-text">${escapeHtml(summary).replace(/\n/g, '<br>')}</div>`;
     actions.style.display = 'flex';
   } catch(err){
