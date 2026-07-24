@@ -798,7 +798,7 @@ $('#search-box').addEventListener('input', (e) => {
 });
 
 (function initTheme(){
-  const saved = localStorage.getItem('theme') || 'dark';
+  const saved = localStorage.getItem('theme') || 'light';
   document.documentElement.setAttribute('data-theme', saved);
 })();
 
@@ -2279,15 +2279,22 @@ ${text}
 Recap:`;
 }
 
-async function summarizeViaGateway(text, scopeLabel){
-  const res = await fetch('/api/summarize', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, scopeLabel })
-  });
+async function summarizeWithOllama(text, scopeLabel){
+  const prompt = buildSummarizePrompt(text, scopeLabel);
+  let res;
+  try{
+    res = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'llama3.1', prompt, stream: false })
+    });
+  } catch(err){
+    throw new Error('Could not reach Ollama at localhost:11434. Checklist: (1) ollama serve is running with OLLAMA_ORIGINS including this site, (2) Chrome may need you to grant "Local network access" for this site — check the site info icon (🔒/ⓘ) next to the URL bar, or chrome://settings/content/localNetworkAccess.');
+  }
+  if(!res.ok) throw new Error('Ollama returned an error (HTTP ' + res.status + ')');
   const data = await res.json();
-  if(!res.ok || data.error) throw new Error(data.error || 'No summary returned');
-  return data.summary;
+  if(!data.response) throw new Error('Ollama returned no text — check the model name matches what you pulled (ollama list)');
+  return data.response;
 }
 
 document.getElementById('recap-ai-btn').addEventListener('click', async () => {
@@ -2301,11 +2308,11 @@ document.getElementById('recap-ai-btn').addEventListener('click', async () => {
 
   panel.style.display = 'block';
   actions.style.display = 'none';
-  body.innerHTML = `<div class="recap-ai-loading">Summarizing…</div>`;
+  body.innerHTML = `<div class="recap-ai-loading">Summarizing via local Ollama…</div>`;
   btn.disabled = true;
 
   try{
-    const summary = await summarizeViaGateway(text, scopeLabel);
+    const summary = await summarizeWithOllama(text, scopeLabel);
     body.innerHTML = `<div class="recap-ai-text">${escapeHtml(summary).replace(/\n/g, '<br>')}</div>`;
     actions.style.display = 'flex';
   } catch(err){
