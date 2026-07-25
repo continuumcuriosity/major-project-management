@@ -81,18 +81,19 @@ body{
 }
 .signout-btn:hover{ color: var(--amber); border-color: var(--amber); }
 
-.header-icons{ display:flex; flex-direction:column; gap:8px; flex-shrink:0; }
 .header-icon-btn{
-  background: var(--bg-panel-raised); border: 1px solid var(--line); color: var(--ink-faint); border-radius: 50%;
-  width: 30px; height: 30px; cursor: pointer; font-size: 13px; flex-shrink: 0;
-  display:flex; align-items:center; justify-content:center;
+  position: fixed; left: 18px; top: 18px;
+  background: var(--bg-panel-raised); border: 1px solid var(--line); color: var(--ink-dim); border-radius: 50%;
+  width: 32px; height: 32px; cursor: pointer; font-size: 15px; flex-shrink: 0;
+  display:flex; align-items:center; justify-content:center; z-index:40;
+  box-shadow: 0 4px 14px -6px #00000088;
 }
 .header-icon-btn:hover{ color: var(--amber); border-color: var(--amber); }
 
 .info-popover{
-  position: fixed; top: 76px; left: 20px; width: 340px; max-height: calc(100vh - 100px);
+  position: fixed; top: 18px; left: 58px; width: min(340px, calc(100vw - 80px)); max-height: calc(100vh - 40px);
   background: var(--bg-panel-raised); border: 1px solid var(--line); border-radius: var(--radius);
-  box-shadow: 0 12px 30px -10px #00000055; z-index: 70;
+  box-shadow: 0 12px 30px -10px #00000055; z-index: 41;
   opacity:0; transform: translateY(-6px); pointer-events:none; transition: opacity .15s, transform .15s;
   display:flex; flex-direction:column; overflow:hidden;
 }
@@ -757,18 +758,16 @@ function initApp(){
 document.getElementById('app').innerHTML = `
   <div class="wrap">
     <header>
-      <div class="header-icons">
-        <button id="info-toggle" class="header-icon-btn" aria-label="What does this app do">ⓘ</button>
-        <button id="signout-btn" class="header-icon-btn" title="Sign out">⏻</button>
-      </div>
       <div class="title-block">
         <div class="eyebrow">Field Log · EEG–EMG Rehab Project</div>
         <h1>Research Log</h1>
         <div class="subtitle">Sessions, papers, and decisions.</div>
       </div>
       <div class="stats" id="stats"></div>
+      <button id="signout-btn" class="signout-btn" title="Sign out">⏻</button>
     </header>
 
+    <button id="info-toggle" class="header-icon-btn" aria-label="What does this app do">ⓘ</button>
     <div id="info-modal" class="info-popover">
       <div class="info-popover-header">
         <span>About this app</span>
