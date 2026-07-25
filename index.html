@@ -281,10 +281,10 @@ select{ cursor: pointer; }
 .milestone-item .m-text{ font-size:12.5px; line-height:1.4; color: var(--ink); flex:1; }
 .milestone-item .m-date{ display:block; font-family: var(--mono); font-size:9.5px; color: var(--ink-faint); margin-top:2px; }
 .milestone-empty{ padding: 20px 10px; text-align:center; color: var(--ink-faint); font-size:12px; }
-.flash-highlight{ animation: flashHighlight 1.5s ease; }
+.flash-highlight{ animation: flashHighlight 1.5s ease; border-radius: var(--radius); }
 @keyframes flashHighlight{
-  0%{ box-shadow: 0 0 0 3px var(--amber); }
-  100%{ box-shadow: none; }
+  0%{ background-color: rgba(216, 171, 61, 0.22); border-color: var(--amber); }
+  100%{ background-color: transparent; border-color: var(--line); }
 }
 
 .todo-toggle{
@@ -750,7 +750,7 @@ document.getElementById('app').innerHTML = `
             <li>🏁 <strong>Milestone</strong> — sessions flagged as real checkpoints.</li>
             <li>🔗 <strong>Connections</strong> — node graph of linked entries (Obsidian-style).</li>
             <li>📄 <strong>Recap</strong> — pick a range + type, copy/download/summarize (local Llama).</li>
-            <li>📁 <strong>Folder</strong> — Gallery (diagrams, files) + Roadmap (everything that happened, forks and fixes alike).</li>
+            <li>🗂 <strong>Folder</strong> — Gallery (diagrams, files) + Roadmap (everything that happened, forks and fixes alike).</li>
           </ul>
           <p><strong>Roadmap vs. Decision:</strong> Roadmap = the whole path. Decision = only the forks on it.</p>
         </div>
