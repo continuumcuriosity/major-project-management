@@ -454,10 +454,11 @@ select{ cursor: pointer; }
 .roadmap-visual-wrap{ width:100%; }
 .roadmap-svg-wrap{
   position:relative; width:100%; border:1px solid var(--line); border-radius: var(--radius);
-  background: var(--bg-panel-raised); padding: 14px 6px;
+  background: var(--bg-panel-raised); padding: 18px 6px;
+  overflow-x:auto; overflow-y:hidden;
 }
-.roadmap-svg{ display:block; width:100%; height:auto; overflow:visible; }
-.roadmap-empty-msg{ padding: 34px 10px; text-align:center; font-size:12.5px; color: var(--ink-faint); font-family: var(--sans); }
+.roadmap-svg{ display:block; height:auto; overflow:visible; }
+.roadmap-empty-msg{ padding: 8px 4px 0; text-align:center; font-size:11.5px; color: var(--ink-faint); font-family: var(--sans); }
 .roadmap-road-path{ fill:none; stroke: var(--ink-faint); stroke-width:11; stroke-linecap:round; opacity:.28; }
 .roadmap-road-dash{ fill:none; stroke: var(--paper); stroke-width:2; stroke-dasharray:6 7; stroke-linecap:round; opacity:.55; }
 .roadmap-node{
@@ -468,7 +469,13 @@ select{ cursor: pointer; }
 .roadmap-node-c0{ fill:#4a9b7f; }
 .roadmap-node-c1{ fill:#d8ab3d; }
 .roadmap-node-c2{ fill:#c1554a; }
+.roadmap-node-anchor{ fill: var(--bg-panel-raised); stroke: var(--amber); stroke-width:3; }
 .roadmap-node-num{ font-family: var(--mono); font-size:10px; font-weight:600; fill:#fff; pointer-events:none; user-select:none; text-anchor:middle; }
+.roadmap-node-anchor-num{ font-family: var(--mono); font-size:10px; font-weight:700; fill: var(--amber); pointer-events:none; user-select:none; text-anchor:middle; }
+.roadmap-node-label{
+  font-family: var(--sans); font-size:11px; fill: var(--ink-dim); pointer-events:none; user-select:none; text-anchor:middle;
+}
+.roadmap-node-label.is-anchor{ font-family: var(--mono); font-size:9.5px; fill: var(--amber); text-transform:uppercase; letter-spacing:.06em; }
 
 .roadmap-tooltip{
   position: fixed; z-index: 90; max-width: 230px; background: var(--bg-panel-raised);
@@ -503,6 +510,8 @@ select{ cursor: pointer; }
   background:none; border:1px solid var(--line); color: var(--ink-faint); font-size:13px; cursor:pointer;
   border-radius: var(--radius); padding:6px 12px; line-height:1;
 }
+.roadmap-detail-edit .field{ display:flex; flex-direction:column; gap:5px; margin-bottom:12px; }
+.roadmap-detail-edit label{ font-family: var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; color: var(--ink-faint); }
 .roadmap-detail-delete:hover{ color:#c17a5c; border-color:#c17a5c; }
 .context-toggle{
   margin-left:auto; background:none; border:none; color: var(--ink-faint); font-family: var(--mono);
@@ -994,9 +1003,22 @@ document.getElementById('app').innerHTML = `
           <div id="roadmap-detail-title" class="roadmap-detail-title"></div>
           <button id="roadmap-detail-close" class="roadmap-detail-close" type="button" aria-label="Close">✕</button>
         </div>
-        <div id="roadmap-detail-choice" class="roadmap-detail-choice"></div>
-        <div id="roadmap-detail-rationale" class="roadmap-detail-rationale"></div>
-        <button id="roadmap-detail-delete" class="roadmap-detail-delete" type="button" aria-label="Delete">🗑 Delete</button>
+        <div id="roadmap-detail-view">
+          <div id="roadmap-detail-choice" class="roadmap-detail-choice"></div>
+          <div id="roadmap-detail-rationale" class="roadmap-detail-rationale"></div>
+          <button id="roadmap-detail-delete" class="roadmap-detail-delete" type="button" aria-label="Delete">🗑 Delete</button>
+        </div>
+        <div id="roadmap-detail-edit" class="roadmap-detail-edit" style="display:none;">
+          <div class="field">
+            <label>What happened here</label>
+            <input type="text" id="roadmap-anchor-choice-input" placeholder="e.g. Kicked off the project">
+          </div>
+          <div class="field">
+            <label>Notes</label>
+            <textarea id="roadmap-anchor-rationale-input" rows="4" placeholder="Details, date, context..."></textarea>
+          </div>
+          <button class="btn-add" id="roadmap-anchor-save-btn" type="button">Save</button>
+        </div>
       </div>
     </div>
   </div>
@@ -2634,7 +2656,24 @@ document.getElementById('gallery-lightbox').addEventListener('click', () => {
 
 let roadmapItems = [];
 let roadmapActiveId = null;
+let roadmapActiveAnchorKey = null;
 const ROADMAP_COLORS = ['roadmap-node-c0', 'roadmap-node-c1', 'roadmap-node-c2'];
+const ROADMAP_ANCHOR_KEY = 'fieldlog-roadmap-anchors';
+
+function loadRoadmapAnchors(){
+  try{
+    const raw = localStorage.getItem(ROADMAP_ANCHOR_KEY);
+    if(raw) return JSON.parse(raw);
+  } catch(e){}
+  return {
+    start: { title: 'Start', choice: '', rationale: '' },
+    end: { title: 'Now', choice: '', rationale: '' }
+  };
+}
+function saveRoadmapAnchors(){
+  try{ localStorage.setItem(ROADMAP_ANCHOR_KEY, JSON.stringify(roadmapAnchors)); } catch(e){}
+}
+let roadmapAnchors = loadRoadmapAnchors();
 
 async function loadRoadmap(){
   const { data, error } = await supabaseClient.from('roadmap_items').select('*').order('created_at', { ascending:true });
@@ -2644,57 +2683,78 @@ async function loadRoadmap(){
   renderRoadmapVisual();
 }
 
+function roadmapLabel(text, max){
+  if(!text) return '';
+  return text.length > max ? text.slice(0, max - 1) + '…' : text;
+}
+
 function renderRoadmapVisual(){
   const svg = document.getElementById('roadmap-svg');
   const emptyMsg = document.getElementById('roadmap-empty-msg');
-  const n = roadmapItems.length;
   svg.innerHTML = '';
 
-  if(n === 0){
-    svg.style.display = 'none';
-    emptyMsg.style.display = 'block';
-    return;
-  }
-  svg.style.display = 'block';
-  emptyMsg.style.display = 'none';
+  emptyMsg.style.display = roadmapItems.length === 0 ? 'block' : 'none';
 
-  const W = 900, padX = 60, baseY = 100, amp = 55;
-  const step = n > 1 ? (W - padX * 2) / (n - 1) : 0;
-  const pts = roadmapItems.map((item, i) => ({
-    x: n === 1 ? W / 2 : padX + step * i,
-    y: n === 1 ? baseY : (i % 2 === 0 ? baseY - amp : baseY + amp),
-    item
-  }));
+  const combined = [
+    { id: 'anchor-start', anchor: true, key: 'start', title: roadmapAnchors.start.title || 'Start', choice: roadmapAnchors.start.choice, rationale: roadmapAnchors.start.rationale },
+    ...roadmapItems,
+    { id: 'anchor-end', anchor: true, key: 'end', title: roadmapAnchors.end.title || 'Now', choice: roadmapAnchors.end.choice, rationale: roadmapAnchors.end.rationale }
+  ];
+  const n = combined.length;
+
+  const padX = 60, baseY = 150;
+  const stepPattern = [190, 250, 210, 270, 220, 260, 200];
+  const ampPattern = [65, 95, 45, 85, 55, 100, 40];
+
+  let x = padX;
+  const pts = combined.map((item, i) => {
+    if(i > 0) x += stepPattern[(i - 1) % stepPattern.length];
+    let y = baseY;
+    if(i > 0 && i < n - 1){
+      const dir = (i % 2 === 0) ? 1 : -1;
+      y = baseY + dir * ampPattern[(i - 1) % ampPattern.length];
+    }
+    return { x, y, item };
+  });
+
+  const totalW = x + padX;
+  const H = 300;
+  svg.setAttribute('width', totalW);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${totalW} ${H}`);
+  svg.style.minWidth = totalW + 'px';
 
   const svgns = 'http://www.w3.org/2000/svg';
 
-  if(pts.length > 1){
-    let pathD = `M ${pts[0].x},${pts[0].y}`;
-    for(let i = 1; i < pts.length; i++){
-      const p0 = pts[i-1], p1 = pts[i];
-      const midX = (p0.x + p1.x) / 2;
-      pathD += ` C ${midX},${p0.y} ${midX},${p1.y} ${p1.x},${p1.y}`;
-    }
-    const road = document.createElementNS(svgns, 'path');
-    road.setAttribute('d', pathD);
-    road.setAttribute('class', 'roadmap-road-path');
-    svg.appendChild(road);
-
-    const dash = document.createElementNS(svgns, 'path');
-    dash.setAttribute('d', pathD);
-    dash.setAttribute('class', 'roadmap-road-dash');
-    svg.appendChild(dash);
+  let pathD = `M ${pts[0].x},${pts[0].y}`;
+  for(let i = 1; i < pts.length; i++){
+    const p0 = pts[i-1], p1 = pts[i];
+    const midX = (p0.x + p1.x) / 2;
+    pathD += ` C ${midX},${p0.y} ${midX},${p1.y} ${p1.x},${p1.y}`;
   }
+  const road = document.createElementNS(svgns, 'path');
+  road.setAttribute('d', pathD);
+  road.setAttribute('class', 'roadmap-road-path');
+  svg.appendChild(road);
 
+  const dash = document.createElementNS(svgns, 'path');
+  dash.setAttribute('d', pathD);
+  dash.setAttribute('class', 'roadmap-road-dash');
+  svg.appendChild(dash);
+
+  let colorIdx = 0;
   pts.forEach((p, i) => {
+    const isAnchor = !!p.item.anchor;
     const circle = document.createElementNS(svgns, 'circle');
     circle.setAttribute('cx', p.x);
     circle.setAttribute('cy', p.y);
-    circle.setAttribute('r', 13);
-    circle.setAttribute('class', 'roadmap-node ' + ROADMAP_COLORS[i % 3] + (p.item.id === roadmapActiveId ? ' is-active' : ''));
-    circle.setAttribute('data-id', p.item.id);
+    circle.setAttribute('r', isAnchor ? 16 : 13);
+    const activeCls = (isAnchor ? roadmapActiveAnchorKey === p.item.key : p.item.id === roadmapActiveId) ? ' is-active' : '';
+    circle.setAttribute('class', 'roadmap-node ' + (isAnchor ? 'roadmap-node-anchor' : ROADMAP_COLORS[colorIdx % 3]) + activeCls);
+    circle.setAttribute('data-id', isAnchor ? p.item.key : p.item.id);
     circle.setAttribute('tabindex', '0');
     circle.setAttribute('aria-label', p.item.title);
+    if(!isAnchor) colorIdx++;
 
     circle.addEventListener('mouseenter', (ev) => showRoadmapTooltip(p.item, ev.currentTarget));
     circle.addEventListener('mouseleave', hideRoadmapTooltip);
@@ -2702,15 +2762,24 @@ function renderRoadmapVisual(){
     circle.addEventListener('blur', hideRoadmapTooltip);
     circle.addEventListener('click', () => {
       hideRoadmapTooltip();
-      openRoadmapPanel(p.item.id);
+      if(isAnchor) openRoadmapAnchorPanel(p.item.key);
+      else openRoadmapPanel(p.item.id);
     });
     svg.appendChild(circle);
 
+    const num = document.createElementNS(svgns, 'text');
+    num.setAttribute('x', p.x);
+    num.setAttribute('y', p.y + 4);
+    num.setAttribute('class', isAnchor ? 'roadmap-node-anchor-num' : 'roadmap-node-num');
+    num.textContent = isAnchor ? (p.item.key === 'start' ? '▶' : '●') : String(colorIdx);
+    svg.appendChild(num);
+
     const label = document.createElementNS(svgns, 'text');
     label.setAttribute('x', p.x);
-    label.setAttribute('y', p.y + 4);
-    label.setAttribute('class', 'roadmap-node-num');
-    label.textContent = String(i + 1);
+    const above = p.y <= baseY;
+    label.setAttribute('y', above ? p.y - 24 : p.y + 32);
+    label.setAttribute('class', 'roadmap-node-label' + (isAnchor ? ' is-anchor' : ''));
+    label.textContent = isAnchor ? p.item.title.toUpperCase() : roadmapLabel(p.item.title, 18);
     svg.appendChild(label);
   });
 }
@@ -2743,11 +2812,10 @@ function openRoadmapPanel(id){
   const item = roadmapItems.find(it => it.id === id);
   if(!item) return;
   roadmapActiveId = id;
+  roadmapActiveAnchorKey = null;
 
-  document.querySelectorAll('.roadmap-node').forEach(c => {
-    c.classList.toggle('is-active', c.getAttribute('data-id') === id);
-  });
-
+  document.getElementById('roadmap-detail-view').style.display = 'block';
+  document.getElementById('roadmap-detail-edit').style.display = 'none';
   document.getElementById('roadmap-detail-title').textContent = item.title;
   const choiceEl = document.getElementById('roadmap-detail-choice');
   choiceEl.textContent = item.choice ? '→ ' + item.choice : '';
@@ -2756,19 +2824,54 @@ function openRoadmapPanel(id){
   rationaleEl.textContent = item.rationale || '';
   rationaleEl.style.display = item.rationale ? 'block' : 'none';
 
+  openRoadmapPanelShell();
+  renderRoadmapVisual();
+}
+
+function openRoadmapAnchorPanel(key){
+  const anchor = roadmapAnchors[key];
+  if(!anchor) return;
+  roadmapActiveAnchorKey = key;
+  roadmapActiveId = null;
+
+  document.getElementById('roadmap-detail-view').style.display = 'none';
+  document.getElementById('roadmap-detail-edit').style.display = 'block';
+  document.getElementById('roadmap-detail-title').textContent = anchor.title;
+  document.getElementById('roadmap-anchor-choice-input').value = anchor.choice || '';
+  document.getElementById('roadmap-anchor-rationale-input').value = anchor.rationale || '';
+
+  openRoadmapPanelShell();
+  renderRoadmapVisual();
+}
+
+function openRoadmapPanelShell(){
   document.getElementById('roadmap-side-panel').classList.add('open');
   document.getElementById('roadmap-side-overlay').classList.add('open');
 }
 
 function closeRoadmapPanel(){
   roadmapActiveId = null;
-  document.querySelectorAll('.roadmap-node').forEach(c => c.classList.remove('is-active'));
+  roadmapActiveAnchorKey = null;
   document.getElementById('roadmap-side-panel').classList.remove('open');
   document.getElementById('roadmap-side-overlay').classList.remove('open');
 }
 
-document.getElementById('roadmap-detail-close').addEventListener('click', closeRoadmapPanel);
-document.getElementById('roadmap-side-overlay').addEventListener('click', closeRoadmapPanel);
+document.getElementById('roadmap-detail-close').addEventListener('click', () => {
+  closeRoadmapPanel();
+  renderRoadmapVisual();
+});
+document.getElementById('roadmap-side-overlay').addEventListener('click', () => {
+  closeRoadmapPanel();
+  renderRoadmapVisual();
+});
+document.getElementById('roadmap-anchor-save-btn').addEventListener('click', () => {
+  if(!roadmapActiveAnchorKey) return;
+  roadmapAnchors[roadmapActiveAnchorKey].choice = document.getElementById('roadmap-anchor-choice-input').value.trim();
+  roadmapAnchors[roadmapActiveAnchorKey].rationale = document.getElementById('roadmap-anchor-rationale-input').value.trim();
+  saveRoadmapAnchors();
+  closeRoadmapPanel();
+  renderRoadmapVisual();
+});
 
 document.getElementById('roadmap-detail-delete').addEventListener('click', async () => {
   if(!roadmapActiveId) return;
