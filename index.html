@@ -513,61 +513,6 @@ select{ cursor: pointer; }
 .roadmap-detail-edit .field{ display:flex; flex-direction:column; gap:5px; margin-bottom:12px; }
 .roadmap-detail-edit label{ font-family: var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; color: var(--ink-faint); }
 .roadmap-detail-delete:hover{ color:#c17a5c; border-color:#c17a5c; }
-.roadmap-detail-actions{ display:flex; gap:8px; align-items:center; }
-.roadmap-detail-edit-btn{
-  background:none; border:1px solid var(--line); color: var(--ink-faint); font-size:13px; cursor:pointer;
-  border-radius: var(--radius); padding:6px 12px; line-height:1;
-}
-.roadmap-detail-edit-btn:hover{ color: var(--amber); border-color: var(--amber); }
-.archive-toggle svg{ width:20px; height:20px; display:block; }
-.info-toggle{
-  position: fixed; left: 18px; top: 18px;
-  width: 32px; height: 32px; border-radius: 50%;
-  background: var(--bg-panel-raised); border: 1px solid var(--line); color: var(--ink-dim);
-  font-family: var(--serif); font-size: 15px; font-weight: 600; font-style: italic; cursor: pointer; z-index: 40;
-  display:flex; align-items:center; justify-content:center;
-  box-shadow: 0 4px 14px -6px #00000088;
-}
-.info-toggle:hover, .info-toggle.active{ border-color: var(--amber); color: var(--amber); }
-.info-panel{
-  position: fixed; left: 58px; top: 18px; width: min(340px, calc(100vw - 80px));
-  max-height: calc(100vh - 40px); overflow-y: auto;
-  background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius);
-  z-index: 41; box-shadow: 0 10px 30px -10px #000000aa;
-  opacity:0; pointer-events:none; transition: opacity .15s;
-}
-.info-panel.open{ opacity:1; pointer-events:auto; }
-.info-header{
-  display:flex; justify-content:space-between; align-items:center; padding:12px 14px;
-  border-bottom:1px solid var(--line); font-family: var(--mono); font-size:11px;
-  text-transform:uppercase; letter-spacing:.08em; color: var(--ink-dim);
-}
-.info-close{ background:none; border:none; color: var(--ink-faint); font-size:16px; cursor:pointer; }
-.info-close:hover{ color: var(--amber); }
-.info-intro{ padding:12px 14px; font-size:12.5px; color: var(--ink-dim); line-height:1.55; border-bottom:1px solid var(--line); }
-.info-sections{ padding:8px 10px 12px; }
-.info-item{
-  display:flex; gap:10px; align-items:flex-start; padding:8px 8px; border-radius: var(--radius);
-  cursor: default; transition: background .12s;
-}
-.info-item:hover{ background: var(--bg-panel-raised); }
-.info-item-icon{
-  width:28px; height:28px; border-radius:50%; flex-shrink:0;
-  background: var(--bg-panel-raised); border:1px solid var(--line);
-  display:flex; align-items:center; justify-content:center;
-  font-family: var(--mono); font-size:12px; color: var(--amber);
-}
-.info-item-body{ flex:1; min-width:0; }
-.info-item-title{ font-family: var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color: var(--ink); margin-bottom:3px; }
-.info-item-desc{ font-size:12px; color: var(--ink-dim); line-height:1.45; }
-.info-highlight{
-  outline: 2px solid var(--amber) !important;
-  outline-offset: 3px;
-  box-shadow: 0 0 0 4px var(--amber-dim) !important;
-  transition: outline .12s, box-shadow .12s;
-}
-.close-btn{ color: var(--ink-faint); }
-.close-btn:hover{ color: var(--amber); }
 .context-toggle{
   margin-left:auto; background:none; border:none; color: var(--ink-faint); font-family: var(--mono);
   font-size: 10.5px; cursor:pointer; text-decoration: underline dotted;
@@ -636,7 +581,6 @@ select{ cursor: pointer; }
 .tag:hover{ background: var(--amber-dim); color: var(--amber); }
 .delete-btn{ background:none; border:none; color:var(--ink-faint); cursor:pointer; font-size: 15px; line-height: 1; padding: 2px 4px; }
 .delete-btn:hover{ color:#8a4a35; }
-.delete-btn.bin:hover{ color:#c17a5c; }
 
 .empty-state{ text-align:center; padding: 60px 20px; color: var(--ink-faint); }
 .empty-state .glyph{ font-family: var(--serif); font-size: 34px; color: var(--ink-faint); margin-bottom: 10px; }
@@ -806,23 +750,22 @@ document.getElementById('app').innerHTML = `
       <div class="composer-body active" id="form-session">
         <div class="field-row">
           <div class="field"><label>Date</label><input type="date" id="s-date"></div>
-        </div>
-        <div class="field-row">
           <div class="field"><label>Time</label><input type="time" id="s-time"></div>
           <div class="field"><label>Duration (minutes)</label><input type="number" id="s-duration" placeholder="e.g. 90"></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>What we covered</label><textarea id="s-summary" rows="4" placeholder="One bullet per line — did X → found Y. No interpretation unless it changes next steps."></textarea></div>
+          <div class="field"><label>What we covered</label><textarea id="s-summary" placeholder="What happened in this session — decisions discussed, papers reviewed, dead ends..."></textarea></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Decision extracted</label><select id="s-decision-linked"><option value="">— none —</option></select></div>
-          <div class="field"><label>Roadmap node updated</label><select id="s-roadmap-linked"><option value="">— none —</option></select></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Recording link</label><input type="text" id="s-link" placeholder="Fathom / Meet recording URL"></div>
+          <div class="field"><label>Recording link (optional)</label><input type="text" id="s-link" placeholder="Fathom / Meet recording URL"></div>
         </div>
         <div class="field-row">
           <div class="field"><label>Next step / open question</label><input type="text" id="s-next" placeholder="What's still unresolved going into next session"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Link to entry (optional)</label><select id="s-linked"><option value="">— none —</option></select>
+            <div class="link-suggest" id="s-link-suggest"></div>
+          </div>
         </div>
         <div class="milestone-toggle-row">
           <label class="milestone-check"><input type="checkbox" id="s-milestone-check"> This session is a milestone</label>
@@ -933,50 +876,6 @@ document.getElementById('app').innerHTML = `
     <div id="timeline"><div class="loading">Loading log…</div></div>
   </div>
 
-  <button id="info-toggle" class="info-toggle" aria-label="About this app">i</button>
-  <div id="info-panel" class="info-panel">
-    <div class="info-header">About this app<button id="info-close" class="info-close" aria-label="Close">×</button></div>
-    <div class="info-intro">A research log with 4 entry types and a few views.</div>
-    <div class="info-sections">
-      <div class="info-item" data-highlight=".type-tab[data-type='session']">
-        <div class="info-item-icon">S</div>
-        <div class="info-item-body"><div class="info-item-title">Sessions</div><div class="info-item-desc">Work sessions (Gmeet + Fathom summary), with a "what's next" field.</div></div>
-      </div>
-      <div class="info-item" data-highlight=".type-tab[data-type='paper']">
-        <div class="info-item-icon">P</div>
-        <div class="info-item-body"><div class="info-item-title">Papers</div><div class="info-item-desc">Papers read, with notes.</div></div>
-      </div>
-      <div class="info-item" data-highlight=".type-tab[data-type='decision']">
-        <div class="info-item-icon">D</div>
-        <div class="info-item-body"><div class="info-item-title">Decisions</div><div class="info-item-desc">Real forks only: you had two genuine paths, picked one, and the why matters later. Not every fix counts.</div></div>
-      </div>
-      <div class="info-item" data-highlight=".type-tab[data-type='account']">
-        <div class="info-item-icon">A</div>
-        <div class="info-item-body"><div class="info-item-title">Accounts</div><div class="info-item-desc">Shared project credentials.</div></div>
-      </div>
-      <div class="info-item" data-highlight="#todo-toggle">
-        <div class="info-item-icon">✓</div>
-        <div class="info-item-body"><div class="info-item-title">Todo</div><div class="info-item-desc">Live "what's next" pulled from sessions.</div></div>
-      </div>
-      <div class="info-item" data-highlight="#milestone-toggle">
-        <div class="info-item-icon">★</div>
-        <div class="info-item-body"><div class="info-item-title">Milestone</div><div class="info-item-desc">Sessions flagged as real checkpoints.</div></div>
-      </div>
-      <div class="info-item" data-highlight="#graph-toggle">
-        <div class="info-item-icon">✳</div>
-        <div class="info-item-body"><div class="info-item-title">Connections</div><div class="info-item-desc">Node graph of linked entries (Obsidian-style).</div></div>
-      </div>
-      <div class="info-item" data-highlight="#recap-toggle">
-        <div class="info-item-icon">⤓</div>
-        <div class="info-item-body"><div class="info-item-title">Recap</div><div class="info-item-desc">Pick a range + type, copy/download/summarize (local Llama).</div></div>
-      </div>
-      <div class="info-item" data-highlight="#archive-toggle">
-        <div class="info-item-icon">📁</div>
-        <div class="info-item-body"><div class="info-item-title">Folder</div><div class="info-item-desc">Gallery (diagrams, files) + Roadmap (everything that happened, forks and fixes alike).</div></div>
-      </div>
-    </div>
-  </div>
-
   <button id="todo-toggle" class="todo-toggle" aria-label="Toggle open questions">✓</button>
   <div id="todo-panel" class="todo-panel">
     <div class="todo-header">Open questions <button id="todo-close" class="todo-close" aria-label="Close">×</button></div>
@@ -1062,11 +961,7 @@ document.getElementById('app').innerHTML = `
     </div>
   </div>
 
-  <button id="archive-toggle" class="archive-toggle" aria-label="Open archive">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M4 10.5V8.8C4 7.3 5.2 6 6.7 6H10.2L12.1 8.2H18.3C19.8 8.2 21 9.5 21 11V18.3C21 19.8 19.8 21 18.3 21H6.7C5.2 21 4 19.8 4 18.3V10.5Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-    </svg>
-  </button>
+  <button id="archive-toggle" class="archive-toggle" aria-label="Open archive">🗂</button>
   <div id="archive-modal" class="archive-modal">
     <div class="archive-modal-inner">
       <div class="archive-header">
@@ -1087,9 +982,9 @@ document.getElementById('app').innerHTML = `
         </div>
         <div id="archive-tab-roadmap" style="display:none;">
           <div class="roadmap-form">
-            <div class="field"><label>Title</label><input type="text" id="roadmap-title-input" placeholder="Node title — e.g. Encoder comparison"></div>
-            <div class="field"><label>Decision point</label><input type="text" id="roadmap-choice-input" placeholder="What you chose — e.g. WordCNN vs DistilBERT"></div>
-            <div class="field"><label>Why</label><textarea id="roadmap-rationale-input" rows="3" placeholder="The reasoning, trade-offs, what you ruled out"></textarea></div>
+            <input type="text" id="roadmap-title-input" placeholder="Decision point — e.g. WordCNN vs DistilBERT">
+            <input type="text" id="roadmap-choice-input" placeholder="What you chose">
+            <textarea id="roadmap-rationale-input" rows="3" placeholder="Why — the reasoning, trade-offs, what you ruled out"></textarea>
             <button class="btn-add" id="roadmap-add-btn" type="button" style="align-self:flex-start;">Add to roadmap</button>
           </div>
           <div class="roadmap-visual-wrap">
@@ -1111,25 +1006,7 @@ document.getElementById('app').innerHTML = `
         <div id="roadmap-detail-view">
           <div id="roadmap-detail-choice" class="roadmap-detail-choice"></div>
           <div id="roadmap-detail-rationale" class="roadmap-detail-rationale"></div>
-          <div class="roadmap-detail-actions">
-            <button id="roadmap-detail-edit-btn" class="roadmap-detail-edit-btn" type="button" aria-label="Edit">✎ Edit</button>
-            <button id="roadmap-detail-delete" class="roadmap-detail-delete" type="button" aria-label="Delete">🗑 Delete</button>
-          </div>
-        </div>
-        <div id="roadmap-detail-item-edit" class="roadmap-detail-edit" style="display:none;">
-          <div class="field">
-            <label>Title</label>
-            <input type="text" id="roadmap-item-title-input" placeholder="Node title">
-          </div>
-          <div class="field">
-            <label>Decision point</label>
-            <input type="text" id="roadmap-item-choice-input" placeholder="What you chose">
-          </div>
-          <div class="field">
-            <label>Why</label>
-            <textarea id="roadmap-item-rationale-input" rows="4" placeholder="Reasoning, trade-offs..."></textarea>
-          </div>
-          <button class="btn-add" id="roadmap-item-save-btn" type="button">Save</button>
+          <button id="roadmap-detail-delete" class="roadmap-detail-delete" type="button" aria-label="Delete">🗑 Delete</button>
         </div>
         <div id="roadmap-detail-edit" class="roadmap-detail-edit" style="display:none;">
           <div class="field">
@@ -1200,13 +1077,6 @@ async function loadEntries(){
   applyDefaultCollapse();
   refreshLinkDropdowns();
   render();
-}
-
-async function bootstrapApp(){
-  await loadEntries();
-  await loadRoadmap();
-  render();
-  loadPendingCalendarEvents();
 }
 
 function showError(msg){
@@ -1313,49 +1183,9 @@ async function fetchFromCrossref(doi, infoEl){
   }
 }
 
-let infoHighlightedEl = null;
-
-function clearInfoHighlights(){
-  if(infoHighlightedEl){
-    infoHighlightedEl.classList.remove('info-highlight');
-    infoHighlightedEl = null;
-  }
-}
-
-document.getElementById('info-toggle').addEventListener('click', () => {
-  const panel = document.getElementById('info-panel');
-  const toggle = document.getElementById('info-toggle');
-  const opening = !panel.classList.contains('open');
-  panel.classList.toggle('open');
-  toggle.classList.toggle('active', opening);
-  if(!opening) clearInfoHighlights();
-});
-document.getElementById('info-close').addEventListener('click', () => {
-  document.getElementById('info-panel').classList.remove('open');
-  document.getElementById('info-toggle').classList.remove('active');
-  clearInfoHighlights();
-});
-
-document.querySelectorAll('.info-item').forEach(item => {
-  item.addEventListener('mouseenter', () => {
-    clearInfoHighlights();
-    const sel = item.dataset.highlight;
-    if(!sel) return;
-    const target = document.querySelector(sel);
-    if(target){
-      target.classList.add('info-highlight');
-      infoHighlightedEl = target;
-    }
-  });
-  item.addEventListener('mouseleave', clearInfoHighlights);
-});
-
 document.getElementById('todo-toggle').addEventListener('click', () => {
   document.getElementById('milestone-panel').classList.remove('open');
   document.getElementById('recap-modal').classList.remove('open');
-  document.getElementById('info-panel').classList.remove('open');
-  document.getElementById('info-toggle').classList.remove('active');
-  clearInfoHighlights();
   document.getElementById('todo-panel').classList.toggle('open');
 });
 document.getElementById('todo-close').addEventListener('click', () => {
@@ -1365,9 +1195,6 @@ document.getElementById('todo-close').addEventListener('click', () => {
 document.getElementById('milestone-toggle').addEventListener('click', () => {
   document.getElementById('todo-panel').classList.remove('open');
   document.getElementById('recap-modal').classList.remove('open');
-  document.getElementById('info-panel').classList.remove('open');
-  document.getElementById('info-toggle').classList.remove('active');
-  clearInfoHighlights();
   document.getElementById('milestone-panel').classList.toggle('open');
 });
 document.getElementById('milestone-close').addEventListener('click', () => {
@@ -1412,11 +1239,16 @@ function scanForLinkMentions(text, prefix, excludeId){
 }
 
 function refreshAllLinkSuggestions(){
+  scanForLinkMentions(($('#s-summary')?.value || '') + ' ' + ($('#s-next')?.value || ''), 's', editingId);
   scanForLinkMentions($('#p-reason')?.value || '', 'p', editingId);
   scanForLinkMentions(($('#d-rationale')?.value || '') + ' ' + ($('#d-alternatives')?.value || ''), 'd', editingId);
   scanForLinkMentions($('#a-reason')?.value || '', 'a', editingId);
 }
 window.refreshAllLinkSuggestions = refreshAllLinkSuggestions;
+
+const scanSessionLinks = debounce(() => scanForLinkMentions($('#s-summary').value + ' ' + $('#s-next').value, 's', editingId), 300);
+$('#s-summary').addEventListener('input', scanSessionLinks);
+$('#s-next').addEventListener('input', scanSessionLinks);
 
 const scanPaperLinks = debounce(() => scanForLinkMentions($('#p-reason').value, 'p', editingId), 300);
 $('#p-reason').addEventListener('input', scanPaperLinks);
@@ -1640,7 +1472,7 @@ if(type === 'session'){
         next_step: $('#s-next').value.trim(),
         is_milestone: $('#s-milestone-check').checked,
         milestone_label: $('#s-milestone-check').checked ? $('#s-milestone-label').value.trim() : null,
-        linked_id: $('#s-decision-linked').value || null
+        linked_id: $('#s-linked').value || null
       };
     }
     if(type === 'paper'){
@@ -1707,12 +1539,10 @@ if(type === 'session'){
 
     if(isEdit){
       entries = entries.map(e => e.id === editingId ? data[0] : e);
-      if(type === 'session') setSessionRoadmapNodeId(data[0].id, $('#s-roadmap-linked').value || null);
       editingId = null;
       btn.textContent = btn.dataset.origLabel || btn.textContent;
     } else {
       entries.unshift(data[0]);
-      if(type === 'session') setSessionRoadmapNodeId(data[0].id, $('#s-roadmap-linked').value || null);
       expandedIds.add(data[0].id);
       if(data[0].date){
         collapsedDays.delete(data[0].date);
@@ -1722,7 +1552,6 @@ if(type === 'session'){
     }
     document.querySelectorAll('#form-' + type + ' input[type=text], #form-' + type + ' input[type=number], #form-' + type + ' input[type=time], #form-' + type + ' textarea').forEach(el => el.value = '');
     document.querySelectorAll('#form-' + type + ' select[id$="-linked"]').forEach(el => el.value = '');
-    if(type === 'session') $('#s-roadmap-linked').value = '';
     if(type === 'decision') $('#d-outcome').value = '';
     document.querySelectorAll('#form-' + type + ' .link-suggest').forEach(el => el.innerHTML = '');
     if(type === 'session'){
@@ -1762,8 +1591,7 @@ function editEntry(id){
     $('#s-milestone-check').checked = !!e.is_milestone;
     document.getElementById('s-milestone-label-row').style.display = e.is_milestone ? 'flex' : 'none';
     $('#s-milestone-label').value = e.milestone_label || '';
-    $('#s-decision-linked').value = e.linked_id || '';
-    $('#s-roadmap-linked').value = getSessionRoadmapNodeId(e.id) || '';
+    $('#s-linked').value = e.linked_id || '';
   }
   if(e.type === 'paper'){
     $('#p-title').value = e.title || '';
@@ -1813,7 +1641,6 @@ async function deleteEntry(id){
   }
   const { error } = await supabaseClient.from('entries').delete().eq('id', id);
   if(error){ showError('Could not delete: ' + error.message); return; }
-  setSessionRoadmapNodeId(id, null);
   entries = entries.filter(e => e.id !== id);
   render();
 }
@@ -1855,53 +1682,6 @@ function entryText(e){
     e.rationale, e.alternatives, e.link, (e.tags || []).join(' ')
   ].filter(Boolean).join(' ');
 }
-
-const SESSION_ROADMAP_KEY = 'fieldlog-session-roadmap';
-
-function getSessionRoadmapLinks(){
-  try{
-    const raw = localStorage.getItem(SESSION_ROADMAP_KEY);
-    if(raw) return JSON.parse(raw);
-  } catch(e){}
-  return {};
-}
-function saveSessionRoadmapLinks(map){
-  try{ localStorage.setItem(SESSION_ROADMAP_KEY, JSON.stringify(map)); } catch(e){}
-}
-function getSessionRoadmapNodeId(sessionId){
-  return getSessionRoadmapLinks()[sessionId] || null;
-}
-function setSessionRoadmapNodeId(sessionId, nodeId){
-  const map = getSessionRoadmapLinks();
-  if(nodeId) map[sessionId] = nodeId; else delete map[sessionId];
-  saveSessionRoadmapLinks(map);
-}
-
-function sessionDecisionLinkHtml(e){
-  if(!e.linked_id) return `<div class="card-body"><span class="k">Decision extracted</span>— none —</div>`;
-  const t = entries.find(x => x.id === e.linked_id);
-  if(!t) return `<div class="card-body"><span class="k">Decision extracted</span>— none —</div>`;
-  const label = t.decision || '(untitled decision)';
-  return `<div class="card-body"><span class="k">Decision extracted</span><div class="linked-jump" onclick="event.stopPropagation(); jumpToEntry('${t.id}')">↳ ${escapeHtml(label)} →</div></div>`;
-}
-
-function sessionRoadmapLinkHtml(e){
-  const nodeId = getSessionRoadmapNodeId(e.id);
-  if(!nodeId) return `<div class="card-body"><span class="k">Roadmap node updated</span>— none —</div>`;
-  const node = roadmapItems.find(x => x.id === nodeId);
-  if(!node) return `<div class="card-body"><span class="k">Roadmap node updated</span>— none —</div>`;
-  return `<div class="card-body"><span class="k">Roadmap node updated</span><div class="linked-jump" onclick="event.stopPropagation(); openRoadmapFromSession('${node.id}')">↳ ${escapeHtml(node.title)} →</div></div>`;
-}
-
-function openRoadmapFromSession(nodeId){
-  document.getElementById('archive-modal').classList.add('open');
-  document.querySelectorAll('.archive-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector('.archive-tab[data-tab="roadmap"]').classList.add('active');
-  document.getElementById('archive-tab-gallery').style.display = 'none';
-  document.getElementById('archive-tab-roadmap').style.display = 'block';
-  loadRoadmap().then(() => openRoadmapPanel(nodeId));
-}
-window.openRoadmapFromSession = openRoadmapFromSession;
 
 function linkedBadge(e){
   if(!e.linked_id) return '';
@@ -2011,12 +1791,7 @@ function outcomeBadge(e){
 
 function entryDetailHtml(e){
   if(e.type === 'session'){
-    const decisionLink = sessionDecisionLinkHtml(e);
-    const roadmapLink = sessionRoadmapLinkHtml(e);
     return `
-      ${e.summary ? `<div class="card-body"><span class="k">What we covered</span>${escapeHtml(e.summary).replace(/\n/g, '<br>')}</div>` : ''}
-      ${decisionLink}
-      ${roadmapLink}
       ${e.link ? `<a class="card-link" href="${escapeHtml(e.link)}" target="_blank" rel="noopener">${escapeHtml(e.link)}</a>` : ''}
       ${e.next_step ? `<div class="card-body"><span class="k">Open question</span><span class="${e.next_done ? 'resolved-text' : ''}">${escapeHtml(e.next_step)}</span></div>` : ''}
       ${e.calendar_added && e.calendar_event_link
@@ -2063,9 +1838,8 @@ function cardHtml(e, isExpanded){
           <span class="entry-row-title">${entryRowTitleHtml(e)}</span>
         </div>
         <div class="entry-row-actions" onclick="event.stopPropagation()">
-          ${isExpanded ? `<button class="delete-btn close-btn" onclick="toggleExpand('${e.id}')" aria-label="Close entry">✕</button>` : ''}
           <button class="delete-btn" onclick="editEntry('${e.id}')" aria-label="Edit entry">✎</button>
-          <button class="delete-btn bin" onclick="deleteEntry('${e.id}')" aria-label="Delete entry">🗑</button>
+          <button class="delete-btn" onclick="deleteEntry('${e.id}')" aria-label="Delete entry">×</button>
         </div>
       </div>
       ${isExpanded ? `<div class="entry-detail">${entryDetailHtml(e)}</div>` : ''}
@@ -2073,39 +1847,17 @@ function cardHtml(e, isExpanded){
 }
 
 function refreshLinkDropdowns(){
-  const allOptions = entries.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(e=>{
+  const options = entries.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(e=>{
     const label = e.type==='session' ? `Session · ${fmtDate(e.date)}`
       : e.type==='paper' ? `Paper · ${e.title}`
       : e.type==='decision' ? `Decision · ${e.decision}`
       : `Account · ${e.title}`;
     return `<option value="${e.id}">${escapeHtml(label)}</option>`;
   }).join('');
-  ['p-linked','d-linked','a-linked'].forEach(id=>{
+  ['s-linked','p-linked','d-linked','a-linked'].forEach(id=>{
     const el = document.getElementById(id);
-    if(el){ const cur = el.value; el.innerHTML = '<option value="">— none —</option>' + allOptions; el.value = cur; }
+    if(el){ const cur = el.value; el.innerHTML = '<option value="">— none —</option>' + options; el.value = cur; }
   });
-
-  const decisionOptions = entries.filter(e => e.type === 'decision').slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(e =>
-    `<option value="${e.id}">Decision · ${escapeHtml(e.decision || '(untitled)')}</option>`
-  ).join('');
-  const sDecision = document.getElementById('s-decision-linked');
-  if(sDecision){
-    const cur = sDecision.value;
-    sDecision.innerHTML = '<option value="">— none —</option>' + decisionOptions;
-    sDecision.value = cur;
-  }
-  refreshRoadmapDropdown();
-}
-
-function refreshRoadmapDropdown(){
-  const el = document.getElementById('s-roadmap-linked');
-  if(!el) return;
-  const cur = el.value;
-  const options = roadmapItems.map(item =>
-    `<option value="${item.id}">${escapeHtml(item.title || '(untitled)')}</option>`
-  ).join('');
-  el.innerHTML = '<option value="">— none —</option>' + options;
-  el.value = cur;
 }
 
 function monthKeyLabel(dateStr){
@@ -2823,6 +2575,9 @@ document.getElementById('archive-toggle').addEventListener('click', () => {
 document.getElementById('archive-close').addEventListener('click', () => {
   document.getElementById('archive-modal').classList.remove('open');
 });
+document.getElementById('archive-modal').addEventListener('click', (ev) => {
+  if(ev.target.id === 'archive-modal') document.getElementById('archive-modal').classList.remove('open');
+});
 
 document.querySelectorAll('.archive-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -2926,7 +2681,6 @@ async function loadRoadmap(){
   roadmapItems = data || [];
   closeRoadmapPanel();
   renderRoadmapVisual();
-  refreshRoadmapDropdown();
 }
 
 function roadmapLabel(text, max){
@@ -3062,7 +2816,6 @@ function openRoadmapPanel(id){
 
   document.getElementById('roadmap-detail-view').style.display = 'block';
   document.getElementById('roadmap-detail-edit').style.display = 'none';
-  document.getElementById('roadmap-detail-item-edit').style.display = 'none';
   document.getElementById('roadmap-detail-title').textContent = item.title;
   const choiceEl = document.getElementById('roadmap-detail-choice');
   choiceEl.textContent = item.choice ? '→ ' + item.choice : '';
@@ -3082,7 +2835,6 @@ function openRoadmapAnchorPanel(key){
   roadmapActiveId = null;
 
   document.getElementById('roadmap-detail-view').style.display = 'none';
-  document.getElementById('roadmap-detail-item-edit').style.display = 'none';
   document.getElementById('roadmap-detail-edit').style.display = 'block';
   document.getElementById('roadmap-detail-title').textContent = anchor.title;
   document.getElementById('roadmap-anchor-choice-input').value = anchor.choice || '';
@@ -3090,17 +2842,6 @@ function openRoadmapAnchorPanel(key){
 
   openRoadmapPanelShell();
   renderRoadmapVisual();
-}
-
-function openRoadmapItemEdit(){
-  if(!roadmapActiveId) return;
-  const item = roadmapItems.find(it => it.id === roadmapActiveId);
-  if(!item) return;
-  document.getElementById('roadmap-detail-view').style.display = 'none';
-  document.getElementById('roadmap-detail-item-edit').style.display = 'block';
-  document.getElementById('roadmap-item-title-input').value = item.title || '';
-  document.getElementById('roadmap-item-choice-input').value = item.choice || '';
-  document.getElementById('roadmap-item-rationale-input').value = item.rationale || '';
 }
 
 function openRoadmapPanelShell(){
@@ -3130,22 +2871,6 @@ document.getElementById('roadmap-anchor-save-btn').addEventListener('click', () 
   saveRoadmapAnchors();
   closeRoadmapPanel();
   renderRoadmapVisual();
-});
-
-document.getElementById('roadmap-detail-edit-btn').addEventListener('click', openRoadmapItemEdit);
-document.getElementById('roadmap-item-save-btn').addEventListener('click', async () => {
-  if(!roadmapActiveId) return;
-  const title = document.getElementById('roadmap-item-title-input').value.trim();
-  if(!title){ showError('Title is required.'); return; }
-  const payload = {
-    title,
-    choice: document.getElementById('roadmap-item-choice-input').value.trim() || null,
-    rationale: document.getElementById('roadmap-item-rationale-input').value.trim() || null
-  };
-  const { error } = await supabaseClient.from('roadmap_items').update(payload).eq('id', roadmapActiveId);
-  if(error){ showError('Could not save: ' + error.message); return; }
-  await loadRoadmap();
-  openRoadmapPanel(roadmapActiveId);
 });
 
 document.getElementById('roadmap-detail-delete').addEventListener('click', async () => {
@@ -3280,7 +3005,8 @@ document.getElementById('recap-ai-copy-btn').addEventListener('click', async () 
   }
 });
 
-bootstrapApp();
+loadEntries();
+loadPendingCalendarEvents();
 }
 </script>
 </body>
