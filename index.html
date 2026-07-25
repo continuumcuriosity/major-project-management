@@ -469,6 +469,8 @@ select{ cursor: pointer; }
 .roadmap-node-c0{ fill:#4a9b7f; }
 .roadmap-node-c1{ fill:#d8ab3d; }
 .roadmap-node-c2{ fill:#c1554a; }
+.roadmap-node-c3{ fill:#5b7fbf; }
+.roadmap-node-c4{ fill:#8a8a8a; }
 .roadmap-node-anchor{ fill: var(--bg-panel-raised); stroke: var(--amber); stroke-width:3; }
 .roadmap-node-num{ font-family: var(--mono); font-size:10px; font-weight:600; fill:#fff; pointer-events:none; user-select:none; text-anchor:middle; }
 .roadmap-node-anchor-num{ font-family: var(--mono); font-size:10px; font-weight:700; fill: var(--amber); pointer-events:none; user-select:none; text-anchor:middle; }
@@ -1016,16 +1018,39 @@ document.getElementById('app').innerHTML = `
         </div>
         <div id="archive-tab-roadmap" style="display:none;">
           <div class="roadmap-form">
-            <input type="text" id="roadmap-node-title-input" placeholder="Title — short, shown on the graph node (e.g. WordCNN vs DistilBERT)">
-            <input type="text" id="roadmap-title-input" placeholder="Decision point — the full description">
-            <input type="text" id="roadmap-choice-input" placeholder="What you chose">
-            <textarea id="roadmap-rationale-input" rows="3" placeholder="Why — the reasoning, trade-offs, what you ruled out"></textarea>
+            <input type="text" id="roadmap-node-title-input" placeholder="Title — e.g. &quot;EMG spike threshold tuning&quot; / &quot;Milestone 1: Encoders validated&quot;">
+            <select id="roadmap-nodetype-input">
+              <option value="">Node type — select…</option>
+              <option value="milestone">Milestone</option>
+              <option value="finding">Finding</option>
+              <option value="tuning">Tuning / Implementation</option>
+              <option value="decision-linked">Decision-linked</option>
+              <option value="dead-end">Dead-end</option>
+            </select>
+            <textarea id="roadmap-whathappened-input" rows="2" placeholder="What happened — what was built, tested, or found. Factual, no reasoning duplication."></textarea>
+            <textarea id="roadmap-result-input" rows="2" placeholder="Result / evidence — numbers, plots, outcome. The 'so what'."></textarea>
+            <div class="field-row" style="gap:8px;">
+              <div class="field"><label style="font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint);">Decision</label><select id="roadmap-link-decision-input"><option value="">— none —</option></select></div>
+              <div class="field"><label style="font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint);">Session</label><select id="roadmap-link-session-input"><option value="">— none —</option></select></div>
+              <div class="field"><label style="font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint);">Paper</label><select id="roadmap-link-paper-input"><option value="">— none —</option></select></div>
+            </div>
+            <div class="field-row" style="gap:8px;">
+              <div class="field"><input type="date" id="roadmap-date-input"></div>
+              <div class="field">
+                <select id="roadmap-status-input">
+                  <option value="done">Done</option>
+                  <option value="in_progress">In progress</option>
+                  <option value="blocked">Blocked</option>
+                  <option value="abandoned">Abandoned</option>
+                </select>
+              </div>
+            </div>
             <button class="btn-add" id="roadmap-add-btn" type="button" style="align-self:flex-start;">Add to roadmap</button>
           </div>
           <div class="roadmap-visual-wrap">
             <div class="roadmap-svg-wrap" id="roadmap-svg-wrap">
               <svg id="roadmap-svg" class="roadmap-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 200" preserveAspectRatio="xMidYMid meet"></svg>
-              <div id="roadmap-empty-msg" class="roadmap-empty-msg" style="display:none;">Nothing on the roadmap yet — add a decision point above.</div>
+              <div id="roadmap-empty-msg" class="roadmap-empty-msg" style="display:none;">Nothing on the roadmap yet — add a node above.</div>
             </div>
           </div>
         </div>
@@ -1039,9 +1064,10 @@ document.getElementById('app').innerHTML = `
           <button id="roadmap-detail-close" class="roadmap-detail-close" type="button" aria-label="Close">✕</button>
         </div>
         <div id="roadmap-detail-view">
-          <div id="roadmap-detail-decisionpoint" class="roadmap-detail-choice" style="color:var(--ink-dim);"></div>
-          <div id="roadmap-detail-choice" class="roadmap-detail-choice"></div>
-          <div id="roadmap-detail-rationale" class="roadmap-detail-rationale"></div>
+          <div id="roadmap-detail-meta" class="roadmap-tooltip-hint" style="margin-bottom:10px;"></div>
+          <div id="roadmap-detail-whathappened" class="roadmap-detail-rationale" style="margin-bottom:10px;"></div>
+          <div id="roadmap-detail-result" class="roadmap-detail-choice" style="display:block;"></div>
+          <div id="roadmap-detail-links" style="margin-bottom:14px; display:flex; flex-direction:column; gap:4px;"></div>
           <div style="display:flex; gap:8px;">
             <button id="roadmap-detail-editbtn" class="roadmap-detail-delete" type="button" aria-label="Edit">✎ Edit</button>
             <button id="roadmap-detail-delete" class="roadmap-detail-delete" type="button" aria-label="Delete">🗑 Delete</button>
@@ -1049,20 +1075,52 @@ document.getElementById('app').innerHTML = `
         </div>
         <div id="roadmap-item-edit" class="roadmap-detail-edit" style="display:none;">
           <div class="field">
-            <label>Title (shown on node)</label>
+            <label>Title</label>
             <input type="text" id="roadmap-item-nodetitle-input" placeholder="Short title">
           </div>
           <div class="field">
-            <label>Decision point</label>
-            <input type="text" id="roadmap-item-title-input" placeholder="Full description">
+            <label>Node type</label>
+            <select id="roadmap-item-nodetype-input">
+              <option value="">Select…</option>
+              <option value="milestone">Milestone</option>
+              <option value="finding">Finding</option>
+              <option value="tuning">Tuning / Implementation</option>
+              <option value="decision-linked">Decision-linked</option>
+              <option value="dead-end">Dead-end</option>
+            </select>
           </div>
           <div class="field">
-            <label>What you chose</label>
-            <input type="text" id="roadmap-item-choice-input" placeholder="What you chose">
+            <label>What happened</label>
+            <textarea id="roadmap-item-whathappened-input" rows="3" placeholder="Factual, no reasoning duplication"></textarea>
           </div>
           <div class="field">
-            <label>Why</label>
-            <textarea id="roadmap-item-rationale-input" rows="4" placeholder="Reasoning, trade-offs, what you ruled out"></textarea>
+            <label>Result / evidence</label>
+            <textarea id="roadmap-item-result-input" rows="3" placeholder="Numbers, plots, outcome"></textarea>
+          </div>
+          <div class="field">
+            <label>Links → Decision</label>
+            <select id="roadmap-item-link-decision-input"><option value="">— none —</option></select>
+          </div>
+          <div class="field">
+            <label>Links → Session</label>
+            <select id="roadmap-item-link-session-input"><option value="">— none —</option></select>
+          </div>
+          <div class="field">
+            <label>Links → Paper</label>
+            <select id="roadmap-item-link-paper-input"><option value="">— none —</option></select>
+          </div>
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="roadmap-item-date-input">
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="roadmap-item-status-input">
+              <option value="done">Done</option>
+              <option value="in_progress">In progress</option>
+              <option value="blocked">Blocked</option>
+              <option value="abandoned">Abandoned</option>
+            </select>
           </div>
           <button class="btn-add" id="roadmap-item-save-btn" type="button">Save</button>
         </div>
@@ -1920,6 +1978,7 @@ function refreshLinkDropdowns(){
     if(el){ const cur = el.value; el.innerHTML = '<option value="">— none —</option>' + options; el.value = cur; }
   });
   refreshRoadmapDropdown();
+  if(typeof refreshRoadmapLinkDropdowns === 'function') refreshRoadmapLinkDropdowns();
 }
 
 function refreshRoadmapDropdown(){
@@ -2735,8 +2794,15 @@ document.getElementById('gallery-lightbox').addEventListener('click', () => {
 let roadmapItems = [];
 let roadmapActiveId = null;
 let roadmapActiveAnchorKey = null;
-const ROADMAP_COLORS = ['roadmap-node-c0', 'roadmap-node-c1', 'roadmap-node-c2'];
 const ROADMAP_ANCHOR_KEY = 'fieldlog-roadmap-anchors';
+const ROADMAP_NODE_TYPES = {
+  'milestone':       { label: 'Milestone',          cls: 'roadmap-node-c0', icon: '🏁' },
+  'finding':         { label: 'Finding',             cls: 'roadmap-node-c1', icon: '🔎' },
+  'tuning':          { label: 'Tuning / Implementation', cls: 'roadmap-node-c2', icon: '⚙' },
+  'decision-linked': { label: 'Decision-linked',      cls: 'roadmap-node-c3', icon: '⑂' },
+  'dead-end':        { label: 'Dead-end',             cls: 'roadmap-node-c4', icon: '✕' }
+};
+const ROADMAP_STATUS_LABELS = { done: 'Done', in_progress: 'In progress', blocked: 'Blocked', abandoned: 'Abandoned' };
 
 function loadRoadmapAnchors(){
   try{
@@ -2760,11 +2826,41 @@ async function loadRoadmap(){
   closeRoadmapPanel();
   renderRoadmapVisual();
   refreshRoadmapDropdown();
+  refreshRoadmapLinkDropdowns();
 }
 
 function roadmapLabel(text, max){
   if(!text) return '';
   return text.length > max ? text.slice(0, max - 1) + '…' : text;
+}
+
+// Populate the Decision / Session / Paper link selects, both on the add-form and the edit-form.
+function refreshRoadmapLinkDropdowns(){
+  const byType = {
+    decision: entries.filter(e => e.type === 'decision'),
+    session: entries.filter(e => e.type === 'session'),
+    paper: entries.filter(e => e.type === 'paper')
+  };
+  const labelFor = (e) => e.type === 'decision' ? (e.decision || '(untitled decision)')
+    : e.type === 'session' ? `Session · ${fmtDate(e.date)}`
+    : (e.title || '(untitled paper)');
+
+  [
+    ['roadmap-link-decision-input', 'decision'],
+    ['roadmap-link-session-input', 'session'],
+    ['roadmap-link-paper-input', 'paper'],
+    ['roadmap-item-link-decision-input', 'decision'],
+    ['roadmap-item-link-session-input', 'session'],
+    ['roadmap-item-link-paper-input', 'paper']
+  ].forEach(([id, type]) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const cur = el.value;
+    const opts = byType[type].slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''))
+      .map(e => `<option value="${e.id}">${escapeHtml(labelFor(e))}</option>`).join('');
+    el.innerHTML = '<option value="">— none —</option>' + opts;
+    el.value = cur;
+  });
 }
 
 function renderRoadmapVisual(){
@@ -2821,19 +2917,19 @@ function renderRoadmapVisual(){
   dash.setAttribute('class', 'roadmap-road-dash');
   svg.appendChild(dash);
 
-  let colorIdx = 0;
   pts.forEach((p, i) => {
     const isAnchor = !!p.item.anchor;
+    const typeInfo = !isAnchor ? (ROADMAP_NODE_TYPES[p.item.node_type] || null) : null;
     const circle = document.createElementNS(svgns, 'circle');
     circle.setAttribute('cx', p.x);
     circle.setAttribute('cy', p.y);
     circle.setAttribute('r', isAnchor ? 16 : 13);
     const activeCls = (isAnchor ? roadmapActiveAnchorKey === p.item.key : p.item.id === roadmapActiveId) ? ' is-active' : '';
-    circle.setAttribute('class', 'roadmap-node ' + (isAnchor ? 'roadmap-node-anchor' : ROADMAP_COLORS[colorIdx % 3]) + activeCls);
+    const colorCls = isAnchor ? 'roadmap-node-anchor' : (typeInfo ? typeInfo.cls : 'roadmap-node-c1');
+    circle.setAttribute('class', 'roadmap-node ' + colorCls + activeCls);
     circle.setAttribute('data-id', isAnchor ? p.item.key : p.item.id);
     circle.setAttribute('tabindex', '0');
-    circle.setAttribute('aria-label', p.item.title);
-    if(!isAnchor) colorIdx++;
+    circle.setAttribute('aria-label', p.item.node_title || p.item.title);
 
     circle.addEventListener('mouseenter', (ev) => showRoadmapTooltip(p.item, ev.currentTarget));
     circle.addEventListener('mouseleave', hideRoadmapTooltip);
@@ -2850,7 +2946,7 @@ function renderRoadmapVisual(){
     num.setAttribute('x', p.x);
     num.setAttribute('y', p.y + 4);
     num.setAttribute('class', isAnchor ? 'roadmap-node-anchor-num' : 'roadmap-node-num');
-    num.textContent = isAnchor ? (p.item.key === 'start' ? '▶' : '●') : String(colorIdx);
+    num.textContent = isAnchor ? (p.item.key === 'start' ? '▶' : '●') : (typeInfo ? typeInfo.icon : '•');
     svg.appendChild(num);
 
     const label = document.createElementNS(svgns, 'text');
@@ -2858,23 +2954,24 @@ function renderRoadmapVisual(){
     const above = p.y <= baseY;
     label.setAttribute('y', above ? p.y - 24 : p.y + 32);
     label.setAttribute('class', 'roadmap-node-label' + (isAnchor ? ' is-anchor' : ''));
-    label.textContent = isAnchor ? p.item.title.toUpperCase() : roadmapLabel(p.item.node_title || p.item.title, 18);
+    label.textContent = isAnchor ? p.item.title.toUpperCase() : roadmapLabel(p.item.node_title || p.item.title || '(untitled)', 20);
     svg.appendChild(label);
   });
 }
 
 function showRoadmapTooltip(item, targetEl){
   const tip = document.getElementById('roadmap-tooltip');
-  const rect = targetEl.getBoundingClientRect();
+  const typeInfo = ROADMAP_NODE_TYPES[item.node_type];
   tip.innerHTML = `
-    <div class="roadmap-tooltip-title">${escapeHtml(item.node_title || item.title)}</div>
-    ${item.choice ? `<div class="roadmap-tooltip-choice">→ ${escapeHtml(item.choice)}</div>` : ''}
+    <div class="roadmap-tooltip-title">${escapeHtml(item.node_title || item.title || '(untitled)')}</div>
+    ${typeInfo ? `<div class="roadmap-tooltip-choice">${typeInfo.icon} ${escapeHtml(typeInfo.label)}</div>` : ''}
     <div class="roadmap-tooltip-hint">Click for details</div>
   `;
   tip.style.left = '0px';
   tip.style.top = '0px';
   tip.classList.add('show');
   const tipRect = tip.getBoundingClientRect();
+  const rect = targetEl.getBoundingClientRect();
   let left = rect.left + rect.width / 2 - tipRect.width / 2;
   left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
   let top = rect.top - tipRect.height - 10;
@@ -2887,6 +2984,23 @@ function hideRoadmapTooltip(){
   document.getElementById('roadmap-tooltip').classList.remove('show');
 }
 
+function roadmapLinkRow(icon, label, entryId){
+  if(!entryId) return '';
+  const e = entries.find(x => x.id === entryId);
+  if(!e) return '';
+  const text = e.type === 'decision' ? (e.decision || '(untitled decision)')
+    : e.type === 'session' ? `Session · ${fmtDate(e.date)}`
+    : (e.title || '(untitled)');
+  return `<button class="cal-link cal-btn" style="text-align:left;" onclick="jumpToRoadmapLinkedEntry('${e.id}')">${icon} ${label}: ${escapeHtml(text)}</button>`;
+}
+
+function jumpToRoadmapLinkedEntry(entryId){
+  closeRoadmapPanel();
+  document.getElementById('archive-modal').classList.remove('open');
+  jumpToEntry(entryId);
+}
+window.jumpToRoadmapLinkedEntry = jumpToRoadmapLinkedEntry;
+
 function openRoadmapPanel(id){
   const item = roadmapItems.find(it => it.id === id);
   if(!item) return;
@@ -2896,16 +3010,30 @@ function openRoadmapPanel(id){
   document.getElementById('roadmap-detail-view').style.display = 'block';
   document.getElementById('roadmap-detail-edit').style.display = 'none';
   document.getElementById('roadmap-item-edit').style.display = 'none';
-  document.getElementById('roadmap-detail-title').textContent = item.node_title || item.title;
-  const dpEl = document.getElementById('roadmap-detail-decisionpoint');
-  dpEl.textContent = (item.node_title && item.title) ? item.title : '';
-  dpEl.style.display = (item.node_title && item.title) ? 'block' : 'none';
-  const choiceEl = document.getElementById('roadmap-detail-choice');
-  choiceEl.textContent = item.choice ? '→ ' + item.choice : '';
-  choiceEl.style.display = item.choice ? 'block' : 'none';
-  const rationaleEl = document.getElementById('roadmap-detail-rationale');
-  rationaleEl.textContent = item.rationale || '';
-  rationaleEl.style.display = item.rationale ? 'block' : 'none';
+  document.getElementById('roadmap-detail-title').textContent = item.node_title || item.title || '(untitled)';
+
+  const typeInfo = ROADMAP_NODE_TYPES[item.node_type];
+  const statusLabel = ROADMAP_STATUS_LABELS[item.status];
+  const metaBits = [];
+  if(typeInfo) metaBits.push(typeInfo.icon + ' ' + typeInfo.label);
+  if(statusLabel) metaBits.push(statusLabel);
+  if(item.event_date) metaBits.push(fmtDate(item.event_date));
+  document.getElementById('roadmap-detail-meta').textContent = metaBits.join(' · ');
+
+  const whEl = document.getElementById('roadmap-detail-whathappened');
+  whEl.textContent = item.what_happened || '';
+  whEl.style.display = item.what_happened ? 'block' : 'none';
+
+  const resEl = document.getElementById('roadmap-detail-result');
+  resEl.textContent = item.result_evidence ? '→ ' + item.result_evidence : '';
+  resEl.style.display = item.result_evidence ? 'block' : 'none';
+
+  const linksHtml = [
+    roadmapLinkRow('⑂', 'Decision', item.linked_decision_id),
+    roadmapLinkRow('📋', 'Session', item.linked_session_id),
+    roadmapLinkRow('📄', 'Paper', item.linked_paper_id)
+  ].filter(Boolean).join('');
+  document.getElementById('roadmap-detail-links').innerHTML = linksHtml;
 
   openRoadmapPanelShell();
   renderRoadmapVisual();
@@ -2969,21 +3097,32 @@ document.getElementById('roadmap-detail-editbtn').addEventListener('click', () =
   document.getElementById('roadmap-detail-view').style.display = 'none';
   document.getElementById('roadmap-item-edit').style.display = 'block';
   document.getElementById('roadmap-item-nodetitle-input').value = item.node_title || '';
-  document.getElementById('roadmap-item-title-input').value = item.title || '';
-  document.getElementById('roadmap-item-choice-input').value = item.choice || '';
-  document.getElementById('roadmap-item-rationale-input').value = item.rationale || '';
+  document.getElementById('roadmap-item-nodetype-input').value = item.node_type || '';
+  document.getElementById('roadmap-item-whathappened-input').value = item.what_happened || '';
+  document.getElementById('roadmap-item-result-input').value = item.result_evidence || '';
+  refreshRoadmapLinkDropdowns();
+  document.getElementById('roadmap-item-link-decision-input').value = item.linked_decision_id || '';
+  document.getElementById('roadmap-item-link-session-input').value = item.linked_session_id || '';
+  document.getElementById('roadmap-item-link-paper-input').value = item.linked_paper_id || '';
+  document.getElementById('roadmap-item-date-input').value = item.event_date || '';
+  document.getElementById('roadmap-item-status-input').value = item.status || 'done';
 });
 
 document.getElementById('roadmap-item-save-btn').addEventListener('click', async () => {
   if(!roadmapActiveId) return;
   const savedId = roadmapActiveId;
-  const title = document.getElementById('roadmap-item-title-input').value.trim();
-  if(!title){ showError('Give this roadmap entry a decision point.'); return; }
+  const nodeTitle = document.getElementById('roadmap-item-nodetitle-input').value.trim();
+  if(!nodeTitle){ showError('Give this roadmap entry a title.'); return; }
   const { error } = await supabaseClient.from('roadmap_items').update({
-    node_title: document.getElementById('roadmap-item-nodetitle-input').value.trim() || null,
-    title,
-    choice: document.getElementById('roadmap-item-choice-input').value.trim() || null,
-    rationale: document.getElementById('roadmap-item-rationale-input').value.trim() || null
+    node_title: nodeTitle,
+    node_type: document.getElementById('roadmap-item-nodetype-input').value || null,
+    what_happened: document.getElementById('roadmap-item-whathappened-input').value.trim() || null,
+    result_evidence: document.getElementById('roadmap-item-result-input').value.trim() || null,
+    linked_decision_id: document.getElementById('roadmap-item-link-decision-input').value || null,
+    linked_session_id: document.getElementById('roadmap-item-link-session-input').value || null,
+    linked_paper_id: document.getElementById('roadmap-item-link-paper-input').value || null,
+    event_date: document.getElementById('roadmap-item-date-input').value || null,
+    status: document.getElementById('roadmap-item-status-input').value || null
   }).eq('id', savedId);
   if(error){ showError('Could not save: ' + error.message); return; }
   await loadRoadmap();
@@ -2992,24 +3131,40 @@ document.getElementById('roadmap-item-save-btn').addEventListener('click', async
 
 document.getElementById('roadmap-add-btn').addEventListener('click', async () => {
   const nodeTitleInput = document.getElementById('roadmap-node-title-input');
-  const titleInput = document.getElementById('roadmap-title-input');
-  const choiceInput = document.getElementById('roadmap-choice-input');
-  const rationaleInput = document.getElementById('roadmap-rationale-input');
-  const title = titleInput.value.trim();
-  if(!title){ showError('Give this roadmap entry a decision point.'); return; }
+  const nodeTypeInput = document.getElementById('roadmap-nodetype-input');
+  const whatHappenedInput = document.getElementById('roadmap-whathappened-input');
+  const resultInput = document.getElementById('roadmap-result-input');
+  const decisionInput = document.getElementById('roadmap-link-decision-input');
+  const sessionInput = document.getElementById('roadmap-link-session-input');
+  const paperInput = document.getElementById('roadmap-link-paper-input');
+  const dateInput = document.getElementById('roadmap-date-input');
+  const statusInput = document.getElementById('roadmap-status-input');
+
+  const nodeTitle = nodeTitleInput.value.trim();
+  if(!nodeTitle){ showError('Give this roadmap entry a title.'); return; }
 
   const { error } = await supabaseClient.from('roadmap_items').insert({
-    node_title: nodeTitleInput.value.trim() || null,
-    title,
-    choice: choiceInput.value.trim() || null,
-    rationale: rationaleInput.value.trim() || null
+    node_title: nodeTitle,
+    node_type: nodeTypeInput.value || null,
+    what_happened: whatHappenedInput.value.trim() || null,
+    result_evidence: resultInput.value.trim() || null,
+    linked_decision_id: decisionInput.value || null,
+    linked_session_id: sessionInput.value || null,
+    linked_paper_id: paperInput.value || null,
+    event_date: dateInput.value || todayStr(),
+    status: statusInput.value || 'done'
   });
   if(error){ showError('Could not add: ' + error.message); return; }
 
   nodeTitleInput.value = '';
-  titleInput.value = '';
-  choiceInput.value = '';
-  rationaleInput.value = '';
+  nodeTypeInput.value = '';
+  whatHappenedInput.value = '';
+  resultInput.value = '';
+  decisionInput.value = '';
+  sessionInput.value = '';
+  paperInput.value = '';
+  dateInput.value = '';
+  statusInput.value = 'done';
   await loadRoadmap();
 });
 
