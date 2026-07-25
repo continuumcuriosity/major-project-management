@@ -451,13 +451,33 @@ select{ cursor: pointer; }
 .gallery-lightbox img{ max-width:90vw; max-height:90vh; border-radius:var(--radius); }
 .roadmap-form{ display:flex; flex-direction:column; gap:8px; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--line); }
 .roadmap-form input, .roadmap-form textarea{ width:100%; }
-.roadmap-item{ padding:14px 0; border-bottom:1px solid var(--line); position:relative; padding-left:20px; }
-.roadmap-item::before{ content:'●'; position:absolute; left:0; top:16px; color: var(--amber); font-size:9px; }
-.roadmap-item-title{ font-family: var(--sans); font-size:14px; font-weight:600; color: var(--ink); margin-bottom:4px; }
-.roadmap-item-choice{ font-family: var(--sans); font-size:12.5px; color: var(--amber); margin-bottom:4px; }
-.roadmap-item-rationale{ font-family: var(--sans); font-size:12.5px; color: var(--ink-dim); line-height:1.6; }
-.roadmap-item-del{ font-family: var(--mono); font-size:10px; color: var(--ink-faint); background:none; border:none; cursor:pointer; margin-top:6px; }
-.roadmap-item-del:hover{ color:#c17a5c; }
+.roadmap-visual-wrap{ display:flex; gap:18px; align-items:flex-start; }
+.roadmap-svg-col{ flex:0 0 130px; }
+.roadmap-svg{ display:block; width:100%; height:auto; overflow:visible; }
+.roadmap-road-path{ fill:none; stroke: var(--amber-dim); stroke-width:3; }
+.roadmap-node{ fill: var(--bg-panel-raised); stroke: var(--amber); stroke-width:2.5; cursor:pointer; transition: r .12s, fill .12s; }
+.roadmap-node:hover, .roadmap-node.is-active{ fill: var(--amber); }
+.roadmap-node-num{ font-family: var(--mono); font-size:9px; fill: var(--ink-dim); pointer-events:none; user-select:none; }
+.roadmap-detail-col{ flex:1; min-width:0; position:sticky; top:0; align-self:flex-start; }
+.roadmap-detail-card{
+  background: var(--bg-panel-raised); border:1px solid var(--line); border-radius: var(--radius);
+  padding:14px 16px; min-height: 120px;
+}
+.roadmap-detail-placeholder{ font-size:12.5px; color: var(--ink-faint); font-family: var(--sans); }
+.roadmap-detail-header{ display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; }
+.roadmap-detail-title{ font-family: var(--sans); font-size:14.5px; font-weight:600; color: var(--ink); flex:1; }
+.roadmap-detail-close{
+  background:none; border:none; color: var(--ink-faint); font-size:15px; cursor:pointer; line-height:1; flex-shrink:0; padding:2px;
+}
+.roadmap-detail-close:hover{ color: var(--amber); }
+.roadmap-detail-choice{ font-family: var(--sans); font-size:12.5px; color: var(--amber); margin-bottom:8px; }
+.roadmap-detail-rationale{ font-family: var(--sans); font-size:12.5px; color: var(--ink-dim); line-height:1.6; margin-bottom:12px; white-space:pre-wrap; }
+.roadmap-detail-delete{
+  background:none; border:1px solid var(--line); color: var(--ink-faint); font-size:13px; cursor:pointer;
+  border-radius: var(--radius); padding:5px 10px; line-height:1;
+}
+.roadmap-detail-delete:hover{ color:#c17a5c; border-color:#c17a5c; }
+.roadmap-empty{ font-size:12.5px; color: var(--ink-faint); }
 .context-toggle{
   margin-left:auto; background:none; border:none; color: var(--ink-faint); font-family: var(--mono);
   font-size: 10.5px; cursor:pointer; text-decoration: underline dotted;
@@ -932,7 +952,25 @@ document.getElementById('app').innerHTML = `
             <textarea id="roadmap-rationale-input" rows="3" placeholder="Why — the reasoning, trade-offs, what you ruled out"></textarea>
             <button class="btn-add" id="roadmap-add-btn" type="button" style="align-self:flex-start;">Add to roadmap</button>
           </div>
-          <div id="roadmap-list"></div>
+          <div class="roadmap-visual-wrap">
+            <div class="roadmap-svg-col">
+              <svg id="roadmap-svg" class="roadmap-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
+            <div class="roadmap-detail-col">
+              <div id="roadmap-detail-card" class="roadmap-detail-card">
+                <div id="roadmap-detail-empty" class="roadmap-detail-placeholder">Hover or tap a node on the road to see its details.</div>
+                <div id="roadmap-detail-content" style="display:none;">
+                  <div class="roadmap-detail-header">
+                    <div id="roadmap-detail-title" class="roadmap-detail-title"></div>
+                    <button id="roadmap-detail-close" class="roadmap-detail-close" type="button" aria-label="Close">✕</button>
+                  </div>
+                  <div id="roadmap-detail-choice" class="roadmap-detail-choice"></div>
+                  <div id="roadmap-detail-rationale" class="roadmap-detail-rationale"></div>
+                  <button id="roadmap-detail-delete" class="roadmap-detail-delete" type="button" aria-label="Delete">🗑 Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2569,19 +2607,142 @@ document.getElementById('gallery-lightbox').addEventListener('click', () => {
   document.getElementById('gallery-lightbox').classList.remove('open');
 });
 
+let roadmapItems = [];
+let roadmapActiveId = null;
+let roadmapPinned = false;
+
 async function loadRoadmap(){
-  const list = document.getElementById('roadmap-list');
+  const svg = document.getElementById('roadmap-svg');
   const { data, error } = await supabaseClient.from('roadmap_items').select('*').order('created_at', { ascending:true });
-  if(error){ list.innerHTML = `<div style="color:var(--ink-faint); font-size:12.5px;">Could not load roadmap: ${escapeHtml(error.message)}</div>`; return; }
-  if(!data || data.length === 0){ list.innerHTML = `<div style="color:var(--ink-faint); font-size:12.5px;">Nothing on the roadmap yet.</div>`; return; }
-  list.innerHTML = data.map(item => `
-    <div class="roadmap-item">
-      <div class="roadmap-item-title">${escapeHtml(item.title)}</div>
-      ${item.choice ? `<div class="roadmap-item-choice">→ ${escapeHtml(item.choice)}</div>` : ''}
-      ${item.rationale ? `<div class="roadmap-item-rationale">${escapeHtml(item.rationale).replace(/\n/g,'<br>')}</div>` : ''}
-      <button class="roadmap-item-del" onclick="deleteRoadmapItem('${item.id}')">Delete</button>
-    </div>`).join('');
+  if(error){ svg.innerHTML = ''; showError('Could not load roadmap: ' + error.message); return; }
+  roadmapItems = data || [];
+  roadmapActiveId = null;
+  roadmapPinned = false;
+  renderRoadmapVisual();
+  showRoadmapEmpty();
 }
+
+function renderRoadmapVisual(){
+  const svg = document.getElementById('roadmap-svg');
+  const n = roadmapItems.length;
+  if(n === 0){
+    svg.innerHTML = '';
+    svg.removeAttribute('viewBox');
+    return;
+  }
+  const W = 130, rowH = 74, padTop = 30, padBottom = 30;
+  const H = padTop + padBottom + (n - 1) * rowH;
+  const xs = [38, 92];
+  const pts = roadmapItems.map((item, i) => ({
+    x: xs[i % 2],
+    y: padTop + i * rowH,
+    item
+  }));
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${Math.max(H, padTop + padBottom)}`);
+
+  let pathD = '';
+  if(n === 1){
+    pathD = '';
+  } else {
+    pathD = 'M ' + pts.map(p => `${p.x},${p.y}`).join(' C ');
+    // build a smooth-ish path using cubic segments between consecutive points
+    pathD = `M ${pts[0].x},${pts[0].y}`;
+    for(let i = 1; i < pts.length; i++){
+      const p0 = pts[i-1], p1 = pts[i];
+      const midY = (p0.y + p1.y) / 2;
+      pathD += ` C ${p0.x},${midY} ${p1.x},${midY} ${p1.x},${p1.y}`;
+    }
+  }
+
+  const svgns = 'http://www.w3.org/2000/svg';
+  svg.innerHTML = '';
+
+  if(pathD){
+    const path = document.createElementNS(svgns, 'path');
+    path.setAttribute('d', pathD);
+    path.setAttribute('class', 'roadmap-road-path');
+    svg.appendChild(path);
+  }
+
+  pts.forEach((p, i) => {
+    const circle = document.createElementNS(svgns, 'circle');
+    circle.setAttribute('cx', p.x);
+    circle.setAttribute('cy', p.y);
+    circle.setAttribute('r', 8);
+    circle.setAttribute('class', 'roadmap-node' + (p.item.id === roadmapActiveId ? ' is-active' : ''));
+    circle.setAttribute('data-id', p.item.id);
+    circle.setAttribute('aria-label', p.item.title);
+
+    circle.addEventListener('mouseenter', () => {
+      if(!roadmapPinned) showRoadmapDetail(p.item.id);
+    });
+    circle.addEventListener('mouseleave', () => {
+      if(!roadmapPinned) hideRoadmapDetailSoon();
+    });
+    circle.addEventListener('click', () => {
+      roadmapPinned = true;
+      showRoadmapDetail(p.item.id);
+    });
+    svg.appendChild(circle);
+
+    const label = document.createElementNS(svgns, 'text');
+    label.setAttribute('x', p.x + (p.x < W/2 ? -14 : 14));
+    label.setAttribute('y', p.y + 3);
+    label.setAttribute('text-anchor', p.x < W/2 ? 'end' : 'start');
+    label.setAttribute('class', 'roadmap-node-num');
+    label.textContent = String(i + 1);
+    svg.appendChild(label);
+  });
+}
+
+let roadmapHideTimer = null;
+function hideRoadmapDetailSoon(){
+  clearTimeout(roadmapHideTimer);
+  roadmapHideTimer = setTimeout(() => {
+    if(!roadmapPinned) showRoadmapEmpty();
+  }, 150);
+}
+
+function showRoadmapDetail(id){
+  clearTimeout(roadmapHideTimer);
+  const item = roadmapItems.find(it => it.id === id);
+  if(!item) return;
+  roadmapActiveId = id;
+
+  document.querySelectorAll('.roadmap-node').forEach(c => {
+    c.classList.toggle('is-active', c.getAttribute('data-id') === id);
+  });
+
+  document.getElementById('roadmap-detail-empty').style.display = 'none';
+  document.getElementById('roadmap-detail-content').style.display = 'block';
+  document.getElementById('roadmap-detail-title').textContent = item.title;
+  document.getElementById('roadmap-detail-choice').textContent = item.choice ? '→ ' + item.choice : '';
+  document.getElementById('roadmap-detail-choice').style.display = item.choice ? 'block' : 'none';
+  document.getElementById('roadmap-detail-rationale').textContent = item.rationale || '';
+  document.getElementById('roadmap-detail-rationale').style.display = item.rationale ? 'block' : 'none';
+}
+
+function showRoadmapEmpty(){
+  roadmapActiveId = null;
+  roadmapPinned = false;
+  document.querySelectorAll('.roadmap-node').forEach(c => c.classList.remove('is-active'));
+  document.getElementById('roadmap-detail-content').style.display = 'none';
+  const emptyEl = document.getElementById('roadmap-detail-empty');
+  emptyEl.style.display = 'block';
+  emptyEl.textContent = roadmapItems.length === 0
+    ? 'Nothing on the roadmap yet — add a decision point above.'
+    : 'Hover or tap a node on the road to see its details.';
+}
+
+document.getElementById('roadmap-detail-close').addEventListener('click', () => {
+  showRoadmapEmpty();
+});
+
+document.getElementById('roadmap-detail-delete').addEventListener('click', async () => {
+  if(!roadmapActiveId) return;
+  await deleteRoadmapItem(roadmapActiveId);
+});
 
 document.getElementById('roadmap-add-btn').addEventListener('click', async () => {
   const titleInput = document.getElementById('roadmap-title-input');
