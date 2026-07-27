@@ -48,6 +48,10 @@
       padding: 0;
     }
 
+    html {
+      overflow-x: hidden;
+    }
+
     body {
       background: var(--bg);
       background-image:
@@ -57,6 +61,8 @@
       font-family: var(--sans);
       min-height: 100vh;
       padding: 40px 20px 80px;
+      overflow-x: hidden;
+      width: 100%;
     }
 
     ::selection {
@@ -162,6 +168,15 @@
       cursor: pointer;
       font-size: 13px;
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .signout-btn svg {
+      width: 15px;
+      height: 15px;
+      pointer-events: none;
     }
 
     .signout-btn:hover {
@@ -1969,7 +1984,7 @@
       gap: 8px;
       padding: 12px 16px;
       border-bottom: 1px solid var(--line);
-      flex-wrap: npwrap;
+      flex-wrap: nowrap;
     }
     .recap-toolbar select#recap-scope {
       font-family: var(--sans);
@@ -3054,10 +3069,99 @@
       box-shadow: 0 4px 14px -6px #00000088;
     }
 
+    .mobile-menu-fab {
+      display: none;
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--amber);
+      color: var(--bg-panel);
+      border: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 70;
+      box-shadow: 0 4px 16px -4px #00000066;
+    }
+
+    .mobile-menu-sheet {
+      display: none;
+      flex-direction: column;
+      position: fixed;
+      right: 16px;
+      bottom: 72px;
+      z-index: 71;
+      min-width: 200px;
+      background: var(--bg-panel-raised);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 10px 28px -6px #00000055;
+      padding: 6px;
+    }
+
+    .mobile-menu-sheet.open {
+      display: flex;
+    }
+
+    .mobile-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: none;
+      border: none;
+      border-radius: 8px;
+      text-align: left;
+      font-family: var(--sans);
+      font-size: 13.5px;
+      color: var(--ink-dim);
+      cursor: pointer;
+    }
+
+    .mobile-menu-item:hover {
+      background: var(--bg-panel);
+      color: var(--ink);
+    }
+
+    .mobile-menu-item .icon {
+      width: 18px;
+      flex-shrink: 0;
+      text-align: center;
+      color: var(--amber);
+      font-family: var(--mono);
+    }
+
     .info-toggle:hover,
     .info-toggle.active {
       border-color: var(--amber);
       color: var(--amber);
+    }
+
+    .floating-panel-backdrop {
+      display: none;
+    }
+
+    /* The 🗑 emoji renders as a platform emoji (looks like the WhatsApp
+       bin on many Android/iOS keyboards) which clashes with the app's own
+       icon style. Desktop keeps the emoji; mobile swaps to a matching
+       line-icon SVG instead. Hidden by default, swapped in the mobile
+       media query below. */
+    .bin-glyph-svg {
+      display: none;
+      width: 14px;
+      height: 14px;
+      vertical-align: -2px;
+    }
+
+    .bin-glyph-svg svg {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
 
     .info-panel {
@@ -3093,114 +3197,6 @@
       text-transform: uppercase;
       letter-spacing: .08em;
       color: var(--ink-dim);
-    }
-
-    .info-header-actions {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .info-details-link {
-      background: none;
-      border: none;
-      font-family: var(--mono);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: var(--ink-dim);
-      text-decoration: underline;
-      text-underline-offset: 3px;
-      cursor: pointer;
-      padding: 0;
-    }
-
-    .info-details-link:hover {
-      color: var(--amber);
-    }
-
-    .details-modal {
-      position: fixed;
-      inset: 0;
-      background: #00000099;
-      z-index: 70;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .15s;
-    }
-
-    .details-modal.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .details-modal-inner {
-      width: min(680px, 94vw);
-      height: min(760px, 88vh);
-      background: var(--bg-panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .details-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--line);
-      font-family: var(--mono);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: var(--ink-dim);
-      flex-shrink: 0;
-    }
-
-    .details-body {
-      overflow-y: auto;
-      padding: 20px 22px 30px;
-    }
-
-    .details-body h3 {
-      font-family: var(--sans);
-      font-size: 13.5px;
-      font-weight: 600;
-      color: var(--ink);
-      margin: 26px 0 8px;
-    }
-
-    .details-body h3:first-child {
-      margin-top: 0;
-    }
-
-    .details-body p {
-      font-size: 13px;
-      line-height: 1.65;
-      color: var(--ink-dim);
-      margin-bottom: 10px;
-    }
-
-    .details-body ul {
-      margin: 6px 0 10px 18px;
-      padding: 0;
-    }
-
-    .details-body li {
-      font-size: 13px;
-      line-height: 1.6;
-      color: var(--ink-dim);
-      margin-bottom: 6px;
-    }
-
-    .details-body strong {
-      color: var(--ink);
-      font-weight: 600;
     }
 
     .info-close {
@@ -3427,10 +3423,20 @@
 
       .stats {
         gap: 12px;
+        flex-wrap: wrap;
+        row-gap: 8px;
+      }
+
+      .stat {
+        text-align: left;
       }
 
       .stat .num {
         font-size: 16px;
+      }
+
+      .stat .label {
+        font-size: 8.5px;
       }
 
       .expand-controls {
@@ -3459,6 +3465,273 @@
       .setup {
         margin: 40px auto;
         padding: 20px;
+      }
+
+      /* Toolbar: the root cause of the mobile overflow bug was a typo that
+         forced this row to never wrap. Letting it wrap here — instead of
+         trying to cram "Entire log / Types / filter / + / Expand / Collapse"
+         into one line on a phone-width screen — is what stops the whole
+         page from being pushed into horizontal scroll. */
+      .recap-toolbar {
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 10px 12px;
+        row-gap: 8px;
+      }
+
+      .expand-controls {
+        gap: 10px;
+      }
+
+      /* Dropdown panels (date range, type, etc.) anchor from the right and
+         are hard-capped to the viewport width so they can never stick out
+         past the screen edge, regardless of where their trigger button sits. */
+      .rdrop-panel {
+        left: auto;
+        right: 0;
+        max-width: calc(100vw - 24px);
+      }
+
+      .date-range-panel {
+        min-width: 0;
+        width: max(220px, calc(100vw - 56px));
+      }
+
+      /* Add-entry modal: use nearly the full screen width/height and cut
+         down the outer padding, since 40px top padding eats a lot of a
+         phone's vertical space. */
+      .composer-modal {
+        padding: 16px 8px;
+        align-items: stretch;
+      }
+
+      .composer-modal .composer {
+        width: 100%;
+      }
+
+      .type-tab {
+        font-size: 10px;
+        padding: 11px 3px;
+      }
+
+      .composer-modal-close {
+        width: 34px;
+        font-size: 18px;
+      }
+
+      /* Bigger touch targets for icon-only controls */
+      .delete-btn {
+        padding: 6px 7px;
+        font-size: 16px;
+      }
+
+      .entry-row-actions {
+        gap: 2px;
+      }
+
+      .drag-handle {
+        width: 28px;
+      }
+
+      /* Archive modal (Gallery / Export / Roadmap / Connections): use
+         nearly the whole viewport on small screens instead of a fixed
+         880x680 box. */
+      .archive-modal {
+        padding: 8px;
+      }
+
+      .archive-modal-inner {
+        width: 100%;
+        height: min(680px, 92vh);
+      }
+
+      .archive-tab {
+        font-size: 10px;
+        padding: 10px 6px;
+      }
+
+      /* The 5 floating circles (info/todo/milestone/roadmap/archive) are
+         positioned to sit in the side margins on desktop. Mobile has no
+         side margin, so they land on top of content instead — replace
+         them with one consolidated menu button. */
+      .info-toggle,
+      .todo-toggle,
+      .milestone-toggle,
+      .progress-toggle,
+      .archive-toggle {
+        display: none;
+      }
+
+      .mobile-menu-fab {
+        display: flex;
+      }
+
+      /* Breathing room pass: the layout above was tuned to not overflow,
+         but packed everything right up to the screen edge with no gap
+         between cards/sections, which reads as visually "loud" on a small
+         screen. Add margin from the edges and more separation between
+         entries/sections instead of just shrinking things further. */
+      body {
+        padding: 20px 16px 70px;
+      }
+
+      header {
+        padding-bottom: 16px;
+        margin-bottom: 22px;
+      }
+
+      .stats {
+        gap: 16px;
+      }
+
+      .composer {
+        margin-bottom: 24px;
+      }
+
+      .card {
+        margin-bottom: 12px;
+      }
+
+      .entry-row {
+        gap: 12px;
+      }
+
+      .entry-row-title {
+        line-height: 1.45;
+      }
+
+      .day-group {
+        margin-bottom: 26px;
+      }
+
+      .month-heading {
+        margin: 30px 0 18px;
+      }
+
+      .recap-toolbar {
+        margin-bottom: 4px;
+      }
+
+      /* --- Mobile-native visual pass ---
+         Everything below is scoped to this mobile media query only, so
+         desktop is completely untouched. The sharp 3px corners and dense
+         monospace chrome read fine on desktop but look like a shrunk-down
+         desktop app on a phone. Softening corners, adding real elevation
+         to cards, and loosening up dense rows makes it read as something
+         actually designed for a touchscreen. */
+      :root {
+        --radius: 12px;
+      }
+
+      .card {
+        border-color: transparent;
+        box-shadow: 0 2px 8px -2px #00000033;
+      }
+
+      .composer,
+      .setup {
+        box-shadow: 0 2px 10px -2px #00000033;
+      }
+
+      /* Milestone divider labels were overflowing on long titles because
+         they were locked to a single non-wrapping line. Let them wrap and
+         center instead of pushing the layout sideways. */
+      .milestone-divider {
+        flex-wrap: wrap;
+        row-gap: 4px;
+      }
+
+      .milestone-divider-label {
+        white-space: normal;
+        text-align: center;
+        flex-basis: 100%;
+        order: 1;
+      }
+
+      .milestone-divider .line {
+        order: 2;
+      }
+
+      /* Stats felt like a squeezed desktop analytics row. A loose 2-up
+         grid with left-aligned numbers is a much more native mobile
+         pattern and gives each figure room to breathe. */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px 18px;
+        width: 100%;
+      }
+
+      .stat {
+        text-align: left;
+        padding: 10px 12px;
+        background: var(--bg-panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+      }
+
+      .stat .num {
+        font-size: 18px;
+      }
+
+      /* Bigger, more tappable touch targets throughout. */
+      .chip,
+      .expand-controls button,
+      .drp-preset,
+      .rdrop-btn {
+        min-height: 38px;
+      }
+
+      .btn-add {
+        min-height: 44px;
+      }
+
+      /* The info/todo/milestone panels are small floating popovers with no
+         backdrop, so touches outside them (which is most of the screen on
+         mobile) fell through to the page underneath and scrolled it while
+         the panel appeared to "float" on top. Add a dim backdrop that both
+         blocks that background scroll and visually ties the panel to the
+         page, like the other modals already do. */
+      .floating-panel-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: #00000066;
+        z-index: 39;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .15s;
+      }
+
+      .floating-panel-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      body.panel-scroll-locked {
+        overflow: hidden;
+      }
+
+      /* Use the real visible viewport height (excludes the mobile browser's
+         address bar) so the panel never extends below what's actually on
+         screen, instead of being cut off / hanging past the fold. */
+      .info-panel,
+      .todo-panel,
+      .milestone-panel {
+        max-height: min(60vh, calc(100dvh - 40px));
+      }
+
+      .info-panel {
+        top: 16px;
+        max-height: calc(100dvh - 32px);
+      }
+
+      .bin-glyph-emoji {
+        display: none;
+      }
+
+      .bin-glyph-svg {
+        display: inline-block;
       }
     }
 
@@ -3810,7 +4083,7 @@
       document.getElementById('app').innerHTML = `
     <div class="setup login-screen">
       <h2>Sign in</h2>
-      <p>This research log is private. Sign in with the project account to continue.</p>
+      <p>This research log is private — sign in with the project account.</p>
       <div class="field-row"><div class="field"><label>Email</label><input type="email" id="login-email"></div></div>
       <div class="field-row"><div class="field"><label>Password</label><input type="password" id="login-password"></div></div>
       <div id="login-error" style="color:#c17a5c; font-size:12.5px; margin-bottom:10px;">${errorMsg ? escapeHtml(errorMsg) : ''}</div>
@@ -3864,12 +4137,12 @@
   <div class="wrap">
     <header>
       <div class="title-block">
-        <div class="eyebrow">EEG–EMG Project</div>
+        <div class="eyebrow">EEG–EMG-SNN Project</div>
         <h1>Research Log</h1>
         <div class="subtitle">Sessions, papers, and decisions.</div>
       </div>
       <div class="stats" id="stats"></div>
-      <button id="signout-btn" class="signout-btn" title="Sign out">⏻</button>
+      <button id="signout-btn" class="signout-btn" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
     </header>
 
     <div id="error-slot"></div>
@@ -3901,7 +4174,7 @@
           <div class="field"><label>Duration (minutes)</label><input type="number" id="s-duration" placeholder="e.g. 90"></div>
         </div>
         <div class="field-row">
-                    <div class="field"><label>What we covered</label><textarea id="s-summary" placeholder="One bullet per action. Example: &quot;did X, found Y.&quot; Skip interpretation unless it changes the next step."></textarea></div>
+                    <div class="field"><label>What we covered</label><textarea id="s-summary" placeholder="One bullet per action — &quot;did X → found Y&quot;. No interpretation unless it changes next steps."></textarea></div>
         </div>
         <div class="link-toggle-row">
           <label class="link-check"><input type="checkbox" id="s-link-enable"> Link this to something?</label>
@@ -4009,7 +4282,7 @@
           <div class="field"><label>Date</label><input type="date" id="p-date"></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Why (verdict reasoning)</label><textarea id="p-reason" placeholder="Why it was accepted or rejected, and what it does or doesn't provide."></textarea></div>
+          <div class="field"><label>Why (verdict reasoning)</label><textarea id="p-reason" placeholder="Why accepted/rejected — what it does or doesn't provide"></textarea></div>
         </div>
         <div class="field-row">
           <div class="field"><label>Tags (comma separated)</label><input type="text" id="p-tags" placeholder="e.g. dataset, SNN, baseline"></div>
@@ -4158,7 +4431,7 @@
         <div class="field-row">
           <div class="field"><label>Why we use it</label><input type="text" id="a-reason" placeholder="e.g. hosting the DB, dataset access, submission portal"></div>
         </div>
-        <p class="warn-note">Track logins here, not passwords. This table is not a secrets vault. Keep the actual password in a proper password manager.</p>
+        <p class="warn-note">Track logins here, not passwords — this table isn't a secrets vault. The actual password belongs in a proper password manager.</p>
         <div class="field-row">
           <div class="field"><label>Tags (comma separated)</label><input type="text" id="a-tags" placeholder="e.g. hosting, dataset-access"></div>
         </div>
@@ -4266,32 +4539,32 @@
 
   <button id="info-toggle" class="info-toggle" aria-label="About this app">i</button>
   <div id="info-panel" class="info-panel">
-    <div class="info-header">About this app<div class="info-header-actions"><button id="info-details-toggle" class="info-details-link">Details</button><button id="info-close" class="info-close" aria-label="Close">×</button></div></div>
-    <div class="info-intro">A private research log, with four entry types plus a project roadmap.</div>
+    <div class="info-header">About this app<button id="info-close" class="info-close" aria-label="Close">×</button></div>
+    <div class="info-intro">A research log with 4 entry types and a few views.</div>
     <div class="info-sections">
       <div class="info-item" data-highlight=".type-tab[data-type='session']">
         <div class="info-item-icon">S</div>
-        <div class="info-item-body"><div class="info-item-title">Sessions</div><div class="info-item-desc">One work session, with a "what's next" field.</div></div>
+        <div class="info-item-body"><div class="info-item-title">Sessions</div><div class="info-item-desc">Work sessions (Gmeet + Fathom summary), with a "what's next" field.</div></div>
       </div>
       <div class="info-item" data-highlight=".type-tab[data-type='paper']">
         <div class="info-item-icon">P</div>
-        <div class="info-item-body"><div class="info-item-title">Papers</div><div class="info-item-desc">A paper you read, with your notes and a verdict.</div></div>
+        <div class="info-item-body"><div class="info-item-title">Papers</div><div class="info-item-desc">Papers read, with notes.</div></div>
       </div>
       <div class="info-item" data-highlight=".type-tab[data-type='decision']">
         <div class="info-item-icon">D</div>
-        <div class="info-item-body"><div class="info-item-title">Decisions</div><div class="info-item-desc">A real fork in the project, worth explaining later.</div></div>
+        <div class="info-item-body"><div class="info-item-title">Decisions</div><div class="info-item-desc">Real forks only: two genuine paths existed, one was picked, and the why matters later. Not every fix counts.</div></div>
       </div>
       <div class="info-item" data-highlight=".type-tab[data-type='account']">
         <div class="info-item-icon">A</div>
-        <div class="info-item-body"><div class="info-item-title">Accounts</div><div class="info-item-desc">Shared project accounts, and what each is for.</div></div>
+        <div class="info-item-body"><div class="info-item-title">Accounts</div><div class="info-item-desc">Shared project credentials.</div></div>
       </div>
       <div class="info-item" data-highlight="#todo-toggle">
         <div class="info-item-icon">✓</div>
-        <div class="info-item-body"><div class="info-item-title">Todo</div><div class="info-item-desc">Open "what's next" steps from your sessions.</div></div>
+        <div class="info-item-body"><div class="info-item-title">Todo</div><div class="info-item-desc">Live "what's next" pulled from sessions.</div></div>
       </div>
       <div class="info-item" data-highlight="#milestone-toggle">
         <div class="info-item-icon">★</div>
-        <div class="info-item-body"><div class="info-item-title">Milestone</div><div class="info-item-desc">Sessions marked as major checkpoints.</div></div>
+        <div class="info-item-body"><div class="info-item-title">Milestone</div><div class="info-item-desc">Sessions flagged as real checkpoints.</div></div>
       </div>
       <div class="info-item" data-highlight="#archive-toggle">
         <div class="info-item-icon">
@@ -4299,7 +4572,7 @@
       <path d="M4 10.5V8.8C4 7.3 5.2 6 6.7 6H10.2L12.1 8.2H18.3C19.8 8.2 21 9.5 21 11V18.3C21 19.8 19.8 21 18.3 21H6.7C5.2 21 4 19.8 4 18.3V10.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
   </svg>
 </div>
-        <div class="info-item-body"><div class="info-item-title">Folder</div><div class="info-item-desc">Gallery of project images, and Export for a recap.</div></div>
+        <div class="info-item-body"><div class="info-item-title">Folder</div><div class="info-item-desc">Gallery (dated, linkable image changelog) and Export (recap + AI summary).</div></div>
       </div>
       <div class="info-item" data-highlight="#progress-toggle">
         <div class="info-item-icon">
@@ -4309,64 +4582,7 @@
       <path d="M8.4 19h7.6a3.2 3.2 0 0 0 0-6.4h-8a3.2 3.2 0 0 1 0-6.4h7.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
   </svg>
 </div>
-        <div class="info-item-body"><div class="info-item-title">Route</div><div class="info-item-desc">Roadmap of the whole project, and a Connections graph.</div></div>
-      </div>
-    </div>
-  </div>
-
-  <div id="details-modal" class="details-modal">
-    <div class="details-modal-inner">
-      <div class="details-header">How this app works<button id="details-close" class="info-close" aria-label="Close">×</button></div>
-      <div class="details-body">
-        <h3>Overview</h3>
-        <p>This app is a private research log. It records four types of entries: Sessions, Papers, Decisions, and Accounts. Alongside those, it has a Roadmap, which is a separate timeline of the whole project. Every entry can be edited, deleted, reordered, tagged, and linked to other entries. Those links are what turn the log into a connected history instead of a flat list of notes, and they are also what draws the diagram in the Connections tab.</p>
-
-        <h3>Sessions</h3>
-        <p>A Session is one block of work. The fields are: Date, Time, Duration in minutes, What we covered, and a Next step or open question. There is also a Recording link field, and two optional search boxes for tagging which Decision was reached and which Roadmap node was updated during this session. Checking "This session is a milestone" adds a Milestone label field and makes the session appear in the Milestones list.</p>
-
-        <h3>Papers</h3>
-        <p>A Paper is a paper you read. The fields are: Title, Verdict (accepted, rejected, extendable, related work, or alternate), Date, a "why" field explaining the reasoning behind the verdict, and Tags. You can paste a DOI or link and the app will try to fill in the title, authors, and year automatically. If that lookup fails, you can type the details in by hand.</p>
-
-        <h3>Decisions</h3>
-        <p>A Decision is a real fork in the project: a point where two genuine paths existed, one was chosen, and the reasoning matters later. The fields are: Date, Decision made, Rationale, Alternatives considered, Tags, an Outcome (holding up, partially validated, reversed, superseded, or invalidated by evidence), and a reason for that outcome.</p>
-        <p><strong>Decision vs. Roadmap.</strong> Both track what happened, but at different levels of detail. A Decision entry is for a genuine fork: two real paths existed, you picked one, and someone (including future you, or an examiner) would need to know why, independent of the surrounding work. A Roadmap node is everything that happened, including forks, but also tuning, debugging, and diagnostics that do not need a standalone justification. A simple test: if this were a hyperparameter change or a bugfix, would you ever need to defend it separately from the code? If no, it belongs on the Roadmap only. If yes, it belongs in the Decision tab too. This keeps the Decision tab a short, scannable ledger, while the Roadmap stays the full trail without repeating the same reasoning twice.</p>
-
-        <h3>Accounts</h3>
-        <p>The Accounts tab keeps track of shared project accounts. The fields are: Service or website, Date logged in, Why we use it, and Tags. It is not a place to store passwords. Keep your actual passwords in a proper password manager, and use this tab only to remember which account is used where.</p>
-
-        <h3>Editing, deleting, and reordering</h3>
-        <p>Every entry card has a pencil icon to edit it and a trash icon to delete it. On the left of each card is a drag handle: press and drag it to reorder entries within the same day. If a save fails, the app will tell you what went wrong rather than fail silently.</p>
-
-        <h3>Tags</h3>
-        <p>Any Paper, Decision, or Account can have comma-separated tags. Each tag is automatically given its own color, and in light mode that color shows as a light background tint, so tags stay easy to tell apart at a glance. The same tag always gets the same color.</p>
-
-        <h3>Linking entries together</h3>
-        <p>Every entry form has a set of checkboxes for linking it to other entries: a Decision, a Session, a Paper, an Account, or a Roadmap node. Ticking a checkbox opens a dropdown menu and a plus button. Choose an entry from the dropdown and click the plus button to add it. The linked entry then appears as a small removable tag below the dropdown, and you can add more than one link of the same type. This linking is also what feeds the Connections tab, described below, so you do not need to set anything up separately for that.</p>
-
-        <h3>Todo</h3>
-        <p>The checkmark button at the top of the page opens the Todo panel. It collects every open "what's next" step from your sessions into one running list, so nothing gets forgotten between sessions.</p>
-
-        <h3>Milestones</h3>
-        <p>The star button at the top of the page opens the Milestones panel. It lists every session you have flagged as a milestone, giving you a sense of what has actually been achieved without the day-to-day detail.</p>
-
-        <h3>Gallery</h3>
-        <p>The folder button opens the Archive. Its first tab is the Gallery, a place for images related to the project, such as architecture diagrams or plots, that do not fit anywhere else. Each image can have a caption, which can be edited or deleted at any time.</p>
-
-        <h3>Export</h3>
-        <p>The Export tab, also under the folder button, builds a written recap of a date range you choose. You can narrow it down to specific entry types, including Roadmap nodes, and further by tags, verdict, outcome, node type, or status, so you can export individual sections or the whole log at once. The recap can be copied as plain text or downloaded as a Markdown file.</p>
-        <p>The recap can also be turned into a short AI-written summary, but this requires <a href="https://ollama.com" target="_blank" rel="noopener">Ollama</a> running locally. Install it, pull a model with a command such as <code>ollama pull llama3.2</code>, then enter that model's name in the small box next to the summarize button. Without Ollama running, the summarize button will not produce a result.</p>
-
-        <h3>Roadmap</h3>
-        <p>The route button opens the Roadmap, a visual timeline of the entire project as one connected path, from a Start node to a Now node. Each point on the path is a Roadmap node: a record of something that happened, whether that is a milestone, a finding, an implementation detail, a dead end, or a fork that is also logged as a Decision. Hover over the path and click the plus icon to add a new node. See "Decision vs. Roadmap" above for how the two tabs relate.</p>
-
-        <h3>Connections</h3>
-        <p>The second tab under the route button is Connections. It shows every entry as a node in a graph, with a line drawn between any two entries you have linked together using the checkboxes described above. This is a view of links you have already made elsewhere in the app, not a separate place to create them.</p>
-
-        <h3>Calendar sync</h3>
-        <p>Sessions can be synced to Google Calendar. Once you authorize this, saving or updating a session creates or updates a matching calendar event, and deleting a session removes that event too.</p>
-
-        <h3>Light and dark mode</h3>
-        <p>Use the toggle at the bottom of the page to switch between light and dark themes. Your choice is remembered the next time you open the app.</p>
+        <div class="info-item-body"><div class="info-item-title">Route</div><div class="info-item-desc">Roadmap (everything that happened, as a progress trace) and Connections (node graph of linked entries).</div></div>
       </div>
     </div>
   </div>
@@ -4396,6 +4612,16 @@
       <path d="M4 10.5V8.8C4 7.3 5.2 6 6.7 6H10.2L12.1 8.2H18.3C19.8 8.2 21 9.5 21 11V18.3C21 19.8 19.8 21 18.3 21H6.7C5.2 21 4 19.8 4 18.3V10.5Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
     </svg>
   </button>
+  <button id="mobile-menu-fab" class="mobile-menu-fab" aria-label="Menu">⋮</button>
+  <div id="floating-panel-backdrop" class="floating-panel-backdrop"></div>
+  <div id="mobile-menu-sheet" class="mobile-menu-sheet">
+    <button class="mobile-menu-item" data-target="info-toggle"><span class="icon">i</span>About this app</button>
+    <button class="mobile-menu-item" data-target="todo-toggle"><span class="icon">✓</span>Open questions</button>
+    <button class="mobile-menu-item" data-target="milestone-toggle"><span class="icon">★</span>Milestones</button>
+    <button class="mobile-menu-item" data-target="progress-toggle"><span class="icon">⌁</span>Roadmap &amp; connections</button>
+    <button class="mobile-menu-item" data-target="archive-toggle"><span class="icon">▤</span>Gallery &amp; export</button>
+  </div>
+
   <div id="archive-modal" class="archive-modal">
     <div class="archive-modal-inner">
       <div class="archive-header">
@@ -4453,7 +4679,7 @@
           <div class="roadmap-visual-wrap">
             <div class="roadmap-svg-wrap" id="roadmap-svg-wrap">
               <svg id="roadmap-svg" class="roadmap-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 200" preserveAspectRatio="xMidYMid meet"></svg>
-                            <div id="roadmap-empty-msg" class="roadmap-empty-msg" style="display:none;">Nothing on the roadmap yet. Hover the line and click the plus icon to add a node.</div>
+                            <div id="roadmap-empty-msg" class="roadmap-empty-msg" style="display:none;">Nothing on the roadmap yet — hover the line and click + to add a node.</div>
 
             </div>
           </div>
@@ -4509,7 +4735,6 @@
                 <label><input type="checkbox" class="recap-type-check" value="paper" checked> Papers</label>
                 <label><input type="checkbox" class="recap-type-check" value="decision" checked> Decisions</label>
                 <label><input type="checkbox" class="recap-type-check" value="account" checked> Accounts</label>
-                <label><input type="checkbox" class="recap-type-check" value="roadmap" checked> Roadmap</label>
               </div>
             </div>
 
@@ -4611,33 +4836,6 @@
                 </div>
               </div>
 
-              <div class="recap-subfilter" id="recap-subfilter-roadmap" style="display:none;">
-                <div class="recap-filter-group-label">Node type</div>
-                <div class="recap-chiprow">
-                  <label><input type="checkbox" class="recap-nodetypefilter" value="all" checked> All</label>
-                  <label><input type="checkbox" class="recap-nodetypefilter" value="milestone"> Milestone</label>
-                  <label><input type="checkbox" class="recap-nodetypefilter" value="finding"> Finding</label>
-                  <label><input type="checkbox" class="recap-nodetypefilter" value="tuning"> Tuning / Implementation</label>
-                  <label><input type="checkbox" class="recap-nodetypefilter" value="decision-linked"> Decision-linked</label>
-                  <label><input type="checkbox" class="recap-nodetypefilter" value="dead-end"> Dead-end</label>
-                </div>
-                <div class="recap-filter-group-label" style="margin-top:12px;">Status</div>
-                <div class="recap-chiprow">
-                  <label><input type="checkbox" class="recap-roadstatusfilter" value="all" checked> All</label>
-                  <label><input type="checkbox" class="recap-roadstatusfilter" value="done"> Done</label>
-                  <label><input type="checkbox" class="recap-roadstatusfilter" value="in_progress"> In progress</label>
-                  <label><input type="checkbox" class="recap-roadstatusfilter" value="blocked"> Blocked</label>
-                  <label><input type="checkbox" class="recap-roadstatusfilter" value="abandoned"> Abandoned</label>
-                </div>
-                <div class="recap-filter-group-label" style="margin-top:12px;">Links to</div>
-                <div class="recap-chiprow">
-                  <label><input type="checkbox" class="recap-linkfilter" data-scope="roadmap" value="all" checked> All</label>
-                  <label><input type="checkbox" class="recap-linkfilter" data-scope="roadmap" value="session"> Session</label>
-                  <label><input type="checkbox" class="recap-linkfilter" data-scope="roadmap" value="paper"> Paper</label>
-                  <label><input type="checkbox" class="recap-linkfilter" data-scope="roadmap" value="decision"> Decision</label>
-                </div>
-              </div>
-
             </div>
           </div>
 
@@ -4668,7 +4866,7 @@
           <div id="roadmap-detail-links" style="margin-bottom:14px; display:flex; flex-direction:column; gap:4px;"></div>
           <div style="display:flex; gap:8px;">
             <button id="roadmap-detail-editbtn" class="roadmap-detail-delete" type="button" aria-label="Edit">✎ Edit</button>
-            <button id="roadmap-detail-delete" class="roadmap-detail-delete" type="button" aria-label="Delete">🗑 Delete</button>
+            <button id="roadmap-detail-delete" class="roadmap-detail-delete" type="button" aria-label="Delete"><span class="bin-glyph-emoji">🗑</span><span class="bin-glyph-svg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></span> Delete</button>
           </div>
         </div>
                 <div id="roadmap-item-edit" class="roadmap-detail-edit" style="display:none;">
@@ -4804,7 +5002,7 @@
   }
 
       let entries = [];
-      let activeFilter = 'all';
+      let activeFilter = 'session';
       let activeVerdictFilter = 'all';
       let searchQuery = '';
       let loaded = false;
@@ -5283,14 +5481,14 @@
             if (!$('#p-title').value.trim()) $('#p-title').value = json.title;
             if (json.description && !$('#p-reason').value.trim()) $('#p-reason').value = json.description.slice(0, 300);
             let line = `Found: ${json.title}`;
-            if (json.authors && json.authors.length) line += ` (${json.authors[0]}${json.authors.length > 1 ? ' et al.' : ''})`;
+            if (json.authors && json.authors.length) line += ` — ${json.authors[0]}${json.authors.length > 1 ? ' et al.' : ''}`;
             if (json.year) line += `, ${json.year}`;
             infoEl.textContent = line;
           } else {
-            infoEl.textContent = json.error ? `Could not auto-extract (${json.error}).` : 'Could not auto-extract details. Enter them manually.';
+            infoEl.textContent = json.error ? `Could not auto-extract (${json.error})` : 'Could not auto-extract details — enter manually.';
           }
         } catch (err) {
-          infoEl.textContent = 'Auto-lookup is unavailable. Enter details manually.';
+          infoEl.textContent = 'Auto-lookup unavailable — enter details manually.';
         }
       }
 
@@ -5309,12 +5507,12 @@
             if (item['container-title'] && item['container-title'][0] && !$('#p-reason').value.trim()) {
               $('#p-reason').value = `Published in ${item['container-title'][0]}${year ? ' (' + year + ')' : ''}.`;
             }
-            infoEl.textContent = `Found via CrossRef: ${title}${authors.length ? ' (' + authors[0] + (authors.length > 1 ? ' et al.)' : ')') : ''}${year ? ', ' + year : ''}`;
+            infoEl.textContent = `Found via CrossRef: ${title}${authors.length ? ' — ' + authors[0] + (authors.length > 1 ? ' et al.' : '') : ''}${year ? ', ' + year : ''}`;
           } else {
             infoEl.textContent = '';
           }
         } catch (err) {
-          infoEl.textContent = 'No DOI metadata found. Enter details manually.';
+          infoEl.textContent = 'No DOI metadata found — enter details manually.';
         }
       }
 
@@ -5327,6 +5525,19 @@
         }
       }
 
+      const floatingPanelIds = ['info-panel', 'todo-panel', 'milestone-panel'];
+      function syncFloatingPanelChrome() {
+        const anyOpen = floatingPanelIds.some(id => document.getElementById(id)?.classList.contains('open'));
+        document.getElementById('floating-panel-backdrop').classList.toggle('open', anyOpen);
+        document.body.classList.toggle('panel-scroll-locked', anyOpen);
+      }
+      document.getElementById('floating-panel-backdrop').addEventListener('click', () => {
+        floatingPanelIds.forEach(id => document.getElementById(id)?.classList.remove('open'));
+        document.getElementById('info-toggle').classList.remove('active');
+        clearInfoHighlights();
+        syncFloatingPanelChrome();
+      });
+
       document.getElementById('info-toggle').addEventListener('click', () => {
         const panel = document.getElementById('info-panel');
         const toggle = document.getElementById('info-toggle');
@@ -5334,21 +5545,13 @@
         panel.classList.toggle('open');
         toggle.classList.toggle('active', opening);
         if (!opening) clearInfoHighlights();
+        syncFloatingPanelChrome();
       });
       document.getElementById('info-close').addEventListener('click', () => {
         document.getElementById('info-panel').classList.remove('open');
         document.getElementById('info-toggle').classList.remove('active');
         clearInfoHighlights();
-      });
-
-      document.getElementById('info-details-toggle').addEventListener('click', () => {
-        document.getElementById('details-modal').classList.add('open');
-      });
-      document.getElementById('details-close').addEventListener('click', () => {
-        document.getElementById('details-modal').classList.remove('open');
-      });
-      document.getElementById('details-modal').addEventListener('click', (e) => {
-        if (e.target.id === 'details-modal') document.getElementById('details-modal').classList.remove('open');
+        syncFloatingPanelChrome();
       });
 
       document.querySelectorAll('.info-item').forEach(item => {
@@ -5365,6 +5568,22 @@
         item.addEventListener('mouseleave', clearInfoHighlights);
       });
 
+      const mobileMenuFab = document.getElementById('mobile-menu-fab');
+      const mobileMenuSheet = document.getElementById('mobile-menu-sheet');
+      mobileMenuFab.addEventListener('click', () => mobileMenuSheet.classList.toggle('open'));
+      document.querySelectorAll('.mobile-menu-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+          mobileMenuSheet.classList.remove('open');
+          const target = document.getElementById(btn.dataset.target);
+          if (target) target.click();
+        });
+      });
+      document.addEventListener('click', (e) => {
+        if (mobileMenuSheet.classList.contains('open') && !mobileMenuSheet.contains(e.target) && e.target !== mobileMenuFab) {
+          mobileMenuSheet.classList.remove('open');
+        }
+      });
+
       document.getElementById('todo-toggle').addEventListener('click', () => {
         document.getElementById('milestone-panel').classList.remove('open');
         document.getElementById('archive-modal').classList.remove('open');
@@ -5372,9 +5591,11 @@
         document.getElementById('info-toggle').classList.remove('active');
         clearInfoHighlights();
         document.getElementById('todo-panel').classList.toggle('open');
+        syncFloatingPanelChrome();
       });
       document.getElementById('todo-close').addEventListener('click', () => {
         document.getElementById('todo-panel').classList.remove('open');
+        syncFloatingPanelChrome();
       });
 
       document.getElementById('milestone-toggle').addEventListener('click', () => {
@@ -5384,12 +5605,15 @@
         document.getElementById('info-toggle').classList.remove('active');
         clearInfoHighlights();
         document.getElementById('milestone-panel').classList.toggle('open');
+        syncFloatingPanelChrome();
       });
       document.getElementById('milestone-close').addEventListener('click', () => {
         document.getElementById('milestone-panel').classList.remove('open');
+        syncFloatingPanelChrome();
       });
 
       document.addEventListener('click', (e) => {
+        if (e.target.closest('.mobile-menu-item') || e.target.closest('#mobile-menu-fab')) return;
         const panels = [
           { panel: 'info-panel', toggle: 'info-toggle' },
           { panel: 'todo-panel', toggle: 'todo-toggle' },
@@ -5404,6 +5628,7 @@
           if (toggleEl) toggleEl.classList.remove('active');
           if (panel === 'info-panel') clearInfoHighlights();
         });
+        syncFloatingPanelChrome();
       });
 
       function debounce(fn, ms) {
@@ -5512,7 +5737,7 @@ $('#s-next').addEventListener('input', scanSessionLinks);
         svg.attr('viewBox', `0 0 ${width} ${height}`);
 
         if (entries.length === 0) {
-          d3.select('#graph-svg-wrap').append('div').attr('class', 'graph-empty').text('Nothing logged yet. The graph fills in as sessions, papers, and decisions are added.');
+          d3.select('#graph-svg-wrap').append('div').attr('class', 'graph-empty').text('Nothing logged yet — the graph fills in as sessions, papers, and decisions are added.');
           return;
         }
 
@@ -6047,7 +6272,7 @@ $('#s-next').addEventListener('input', scanSessionLinks);
           .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
         if (milestones.length === 0) {
-          list.innerHTML = `<div class="milestone-empty">No milestones logged yet. Check "Milestone" on a session to mark one.</div>`;
+          list.innerHTML = `<div class="milestone-empty">No milestones logged yet — check "Milestone" on a session to mark one.</div>`;
         } else {
           list.innerHTML = milestones.map(m => `
       <div class="milestone-item" onclick="jumpToEntry('${m.id}'); document.getElementById('milestone-panel').classList.remove('open');">
@@ -6288,7 +6513,7 @@ $('#s-next').addEventListener('input', scanSessionLinks);
             supabaseClient.from('entries').update({ sort_order: orderFor[id] }).eq('id', id)
           ));
           const failed = results.find(r => r.error);
-          if (failed) showError('Could not save new order: ' + failed.error.message + '. A "sort_order" (integer, nullable) column may need to be added to the entries table in Supabase.');
+          if (failed) showError('Could not save new order: ' + failed.error.message + ' — a "sort_order" (integer, nullable) column may need to be added to the entries table in Supabase.');
         } catch (err) {
           showError('Could not save new order: ' + err.message);
         }
@@ -6315,7 +6540,7 @@ $('#s-next').addEventListener('input', scanSessionLinks);
           <div class="entry-row-actions" onclick="event.stopPropagation()">
             
             <button class="delete-btn" onclick="editEntry('${e.id}')" aria-label="Edit entry">✎</button>
-                      <button class="delete-btn" onclick="deleteEntry('${e.id}')" aria-label="Delete entry">🗑</button>
+                      <button class="delete-btn" onclick="deleteEntry('${e.id}')" aria-label="Delete entry"><span class="bin-glyph-emoji">🗑</span><span class="bin-glyph-svg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></span></button>
             ${isExpanded ? `<button class="delete-btn" onclick="toggleExpand('${e.id}')" aria-label="Close entry">×</button>` : ''}
 
           </div>
@@ -6422,7 +6647,7 @@ $('#s-next').addEventListener('input', scanSessionLinks);
         for (let d = 1; d <= days; d++) { const iso = `${dashCal.y}-${String(dashCal.m + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; let cls = 'drp-day'; if (iso === dashCal.start) cls += ' range-start range-end'; if (iso === dashCal.end) cls += ' range-end'; if (dashCal.start && dashCal.end && iso > dashCal.start && iso < dashCal.end) cls += ' in-range'; cells += `<div class="${cls}" data-date="${iso}">${d}</div>`; }
         const trailing = (7 - ((startDow + days) % 7)) % 7; for (let d = 1; d <= trailing; d++) cells += `<div class="drp-day out">${d}</div>`;
         grid.innerHTML = cells;
-        grid.querySelectorAll('.drp-day:not(.out)').forEach(el => el.addEventListener('click', () => { const iso = el.dataset.date; if (!dashCal.start || dashCal.end) { dashCal.start = iso; dashCal.end = null; } else if (iso < dashCal.start) { dashCal.end = dashCal.start; dashCal.start = iso; } else dashCal.end = iso; document.querySelectorAll('#dash-date-drop .drp-preset').forEach(b => b.classList.remove('active')); dashRenderCalendar(); document.getElementById('dash-drp-range-summary').textContent = dashCal.end ? `${fmtDate(dashCal.start)} – ${fmtDate(dashCal.end)}` : `${fmtDate(dashCal.start)} · pick an end date`; }));
+        grid.querySelectorAll('.drp-day:not(.out)').forEach(el => el.addEventListener('click', () => { const iso = el.dataset.date; if (!dashCal.start || dashCal.end) { dashCal.start = iso; dashCal.end = null; } else if (iso < dashCal.start) { dashCal.end = dashCal.start; dashCal.start = iso; } else dashCal.end = iso; document.querySelectorAll('#dash-date-drop .drp-preset').forEach(b => b.classList.remove('active')); dashRenderCalendar(); document.getElementById('dash-drp-range-summary').textContent = dashCal.end ? `${fmtDate(dashCal.start)} – ${fmtDate(dashCal.end)}` : `${fmtDate(dashCal.start)} — pick an end date`; }));
       }
       document.getElementById('dash-drp-prev').addEventListener('click', () => { dashCal.m--; if (dashCal.m < 0) { dashCal.m = 11; dashCal.y--; } dashRenderCalendar(); });
       document.getElementById('dash-drp-next').addEventListener('click', () => { dashCal.m++; if (dashCal.m > 11) { dashCal.m = 0; dashCal.y++; } dashRenderCalendar(); });
@@ -6690,7 +6915,7 @@ $('#s-next').addEventListener('input', scanSessionLinks);
         if (!list) return;
 
         if (active.length === 0 && done.length === 0) {
-          list.innerHTML = `<div class="todo-empty">No open questions logged yet. They will show up here from a session's "Next step" field.</div>`;
+          list.innerHTML = `<div class="todo-empty">No open questions logged yet — they'll show up here from a session's "Next step" field.</div>`;
         } else {
           let html = active.length ? active.map(e => todoItemHtml(e, false)).join('') : `<div class="todo-empty">All caught up.</div>`;
           if (done.length) {
@@ -6735,7 +6960,7 @@ $('#s-next').addEventListener('input', scanSessionLinks);
       async function getFreshAccessToken() {
         const res = await fetch('/api/get-calendar-token');
         const data = await res.json();
-        if (!data.access_token) throw new Error(data.error || 'Calendar is not authorized. Run the one-time setup.');
+        if (!data.access_token) throw new Error(data.error || 'Calendar not authorized — run the one-time setup');
         return data.access_token;
       }
 
@@ -6854,7 +7079,7 @@ $('#s-next').addEventListener('input', scanSessionLinks);
 
         if (res.status === 404 || res.status === 410) {
           await clearCalendarFields(e.id);
-          showError('The linked Calendar event no longer exists. It has been unlinked locally. Use "Add to Google Calendar" to create a new one.');
+          showError('The linked Calendar event no longer exists — unlinked locally. Use "Add to Google Calendar" to create a fresh one.');
           return;
         }
 
@@ -6980,7 +7205,6 @@ $('#s-next').addEventListener('input', scanSessionLinks);
         if (e.type === 'paper') return e.title || '(untitled paper)';
         if (e.type === 'decision') return e.decision || '(untitled decision)';
         if (e.type === 'account') return e.title || '(untitled)';
-        if (e.type === 'roadmap') return e.node_title || e.title || '(untitled node)';
         return '';
       }
 
@@ -7007,43 +7231,11 @@ $('#s-next').addEventListener('input', scanSessionLinks);
         if (e.type === 'account') {
           if (e.reason) lines.push(e.reason);
         }
-        if (e.type === 'roadmap') {
-          const typeInfo = (typeof ROADMAP_NODE_TYPES !== 'undefined') ? ROADMAP_NODE_TYPES[e.node_type] : null;
-          if (typeInfo) lines.push('Node type: ' + typeInfo.label);
-          const statusMap = { done: 'Done', in_progress: 'In progress', blocked: 'Blocked', abandoned: 'Abandoned' };
-          if (e.status) lines.push('Status: ' + (statusMap[e.status] || e.status));
-          if (e.what_happened) lines.push(e.what_happened);
-          if (e.result_evidence) lines.push('Result: ' + e.result_evidence);
-        }
         return lines;
       }
 
-      function recapRoadmapPseudoEntries() {
-        return (roadmapItems || []).map(it => ({
-          id: it.id,
-          type: 'roadmap',
-          date: it.event_date || it.date || null,
-          created_at: it.created_at || it.event_date || '',
-          node_title: it.node_title || it.title,
-          node_type: it.node_type,
-          status: it.status,
-          what_happened: it.what_happened,
-          result_evidence: it.result_evidence,
-          linked_session_id: it.linked_session_id,
-          linked_session_ids: it.linked_session_ids,
-          linked_paper_id: it.linked_paper_id,
-          linked_paper_ids: it.linked_paper_ids,
-          linked_decision_id: it.linked_decision_id,
-          linked_decision_ids: it.linked_decision_ids
-        }));
-      }
-
-      function recapSourceEntries() {
-        return [...entries, ...recapRoadmapPseudoEntries()];
-      }
-
       function resolveRecapEntries(scope, fromDate, toDate) {
-        const sorted = recapSourceEntries().sort((a, b) => (a.created_at || '').localeCompare(b.created_at || '') || (a.date || '').localeCompare(b.date || ''));
+        const sorted = [...entries].sort((a, b) => (a.created_at || '').localeCompare(b.created_at || '') || (a.date || '').localeCompare(b.date || ''));
 
         if (scope === 'since-last-session') {
           const sessions = sorted.filter(e => e.type === 'session');
@@ -7098,12 +7290,6 @@ $('#s-next').addEventListener('input', scanSessionLinks);
         if (e.type === 'decision') {
           const outcomes = selectedFromGroup('.recap-outcomefilter');
           if (outcomes && !outcomes.includes(e.outcome || '')) return false;
-        }
-        if (e.type === 'roadmap') {
-          const nodeTypes = selectedFromGroup('.recap-nodetypefilter');
-          if (nodeTypes && !nodeTypes.includes(e.node_type || '')) return false;
-          const statuses = selectedFromGroup('.recap-roadstatusfilter');
-          if (statuses && !statuses.includes(e.status || '')) return false;
         }
         const linkFilter = selectedFromGroup(`.recap-linkfilter[data-scope="${e.type}"]`);
         if (linkFilter) {
@@ -7192,10 +7378,8 @@ $('#s-next').addEventListener('input', scanSessionLinks);
       }
       function updateRecapFiltersBadge() {
         const groups = ['.recap-milestonefilter', '.recap-verdictfilter', '.recap-outcomefilter',
-          '.recap-nodetypefilter', '.recap-roadstatusfilter',
           '.recap-linkfilter[data-scope="session"]', '.recap-linkfilter[data-scope="paper"]',
-          '.recap-linkfilter[data-scope="decision"]', '.recap-linkfilter[data-scope="account"]',
-          '.recap-linkfilter[data-scope="roadmap"]'];
+          '.recap-linkfilter[data-scope="decision"]', '.recap-linkfilter[data-scope="account"]'];
         const narrowedCount = groups.filter(sel => {
           const boxes = [...document.querySelectorAll(sel)];
           if (!boxes.length) return false;
@@ -7214,7 +7398,7 @@ $('#s-next').addEventListener('input', scanSessionLinks);
       function renderRecap() {
         const { scope, fromDate, toDate } = recapScopeState;
         const types = selectedRecapTypes();
-        ['session', 'paper', 'decision', 'account', 'roadmap'].forEach(t => {
+        ['session', 'paper', 'decision', 'account'].forEach(t => {
           const el = document.getElementById('recap-subfilter-' + t);
           if (el) el.style.display = types.includes(t) ? 'flex' : 'none';
         });
@@ -7235,12 +7419,9 @@ $('#s-next').addEventListener('input', scanSessionLinks);
           lastDate = e.date;
           const detailLines = recapEntryDetail(e);
           const typeLabel = e.type.charAt(0).toUpperCase() + e.type.slice(1);
-          const clickAction = e.type === 'roadmap'
-            ? `jumpToGalleryRoadmapNode('${e.id}');`
-            : `document.getElementById('archive-modal').classList.remove('open'); jumpToEntry('${e.id}');`;
           return `
       ${dateChanged ? `<div class="recap-day">${e.date ? fmtDate(e.date) : 'Undated'}</div>` : ''}
-      <div class="recap-entry" onclick="${clickAction}">
+      <div class="recap-entry" onclick="document.getElementById('archive-modal').classList.remove('open'); jumpToEntry('${e.id}');">
         <div class="recap-entry-top"><span class="recap-entry-type">${typeLabel}</span><div class="recap-entry-title">${escapeHtml(recapEntrySummary(e))}</div></div>
         ${detailLines.length ? `<div class="recap-entry-detail">${detailLines.map(l => `<div class="recap-entry-line">${escapeHtml(l)}</div>`).join('')}</div>` : ''}
       </div>`;
@@ -7250,15 +7431,15 @@ $('#s-next').addEventListener('input', scanSessionLinks);
       function recapScopeLabel() {
         const { scope, fromDate, toDate } = recapScopeState;
         if (scope === 'daterange') {
-          if (fromDate && toDate && fromDate !== toDate) return `Recap: ${fmtDate(fromDate)} to ${fmtDate(toDate)}`;
-          if (fromDate) return `Recap: ${fmtDate(fromDate)}`;
-          return 'Recap: custom range';
+          if (fromDate && toDate && fromDate !== toDate) return `Recap — ${fmtDate(fromDate)} to ${fmtDate(toDate)}`;
+          if (fromDate) return `Recap — ${fmtDate(fromDate)}`;
+          return 'Recap — custom range';
         }
         const map = {
           'since-last-session': 'Recap since last session',
           'since-last-milestone': 'Recap since last milestone',
-          'last-7': 'Recap: last 7 days',
-          'last-30': 'Recap: last 30 days',
+          'last-7': 'Recap — last 7 days',
+          'last-30': 'Recap — last 30 days',
           'all': 'Full research log'
         };
         return map[scope] || 'Recap';
@@ -7267,7 +7448,7 @@ $('#s-next').addEventListener('input', scanSessionLinks);
       function buildRecapText(markdown) {
         const { scope, fromDate, toDate } = recapScopeState;
         const types = selectedRecapTypes();
-        const scoped = resolveRecapEntries(scope, fromDate, toDate).filter(e => types.includes(e.type)).filter(recapPassesSubfilters);
+        const scoped = resolveRecapEntries(scope, fromDate, toDate).filter(e => types.includes(e.type));
         const title = recapScopeLabel();
 
         let out = markdown ? `# ${title}\n\n` : `${title}\n${'='.repeat(title.length)}\n\n`;
@@ -7384,7 +7565,7 @@ $('#s-next').addEventListener('input', scanSessionLinks);
         const el = document.getElementById('drp-range-summary');
         if (!el) return;
         if (recapCal.start && recapCal.end) el.textContent = `${fmtDate(recapCal.start)} – ${fmtDate(recapCal.end)}`;
-        else if (recapCal.start) el.textContent = `${fmtDate(recapCal.start)} · pick an end date`;
+        else if (recapCal.start) el.textContent = `${fmtDate(recapCal.start)} — pick an end date`;
         else el.textContent = 'Pick a start and end date';
       }
 
@@ -7420,9 +7601,7 @@ $('#s-next').addEventListener('input', scanSessionLinks);
       wireRecapExclusiveGroup('.recap-milestonefilter');
       wireRecapExclusiveGroup('.recap-verdictfilter');
       wireRecapExclusiveGroup('.recap-outcomefilter');
-      wireRecapExclusiveGroup('.recap-nodetypefilter');
-      wireRecapExclusiveGroup('.recap-roadstatusfilter');
-      ['session', 'paper', 'decision', 'account', 'roadmap'].forEach(scope => {
+      ['session', 'paper', 'decision', 'account'].forEach(scope => {
         wireRecapExclusiveGroup(`.recap-linkfilter[data-scope="${scope}"]`);
       });
 
@@ -7843,11 +8022,14 @@ function refreshRoadmapLinkDropdowns(){
 
         const wrapEl = document.getElementById('roadmap-svg-wrap');
         if (wrapEl.offsetParent === null) return;
-        const totalW = Math.max(480, (wrapEl.clientWidth || 700) - 16);
-        const centerX = totalW / 2, padY = 54, stepY = 150;
-        const cardW = 160, cardGap = 14, nodeR = 13;
-        const branchOffset = Math.min(110, Math.max(70, centerX - nodeR - cardGap - cardW - 20));
-        const branchStepY = 44;
+        const containerW = wrapEl.clientWidth || 700;
+        const isNarrow = containerW < 480;
+        const totalW = isNarrow ? Math.max(280, containerW - 12) : Math.max(480, containerW - 16);
+        const centerX = totalW / 2, padY = isNarrow ? 44 : 54, stepY = isNarrow ? 128 : 150;
+        const cardW = isNarrow ? Math.max(96, Math.round(totalW * 0.4)) : 160;
+        const cardGap = isNarrow ? 10 : 14, nodeR = isNarrow ? 10 : 13;
+        const branchOffset = Math.min(isNarrow ? 60 : 110, Math.max(isNarrow ? 38 : 70, centerX - nodeR - cardGap - cardW - (isNarrow ? 10 : 20)));
+        const branchStepY = isNarrow ? 38 : 44;
 
         const mpts = mainline.map((item, i) => ({ x: centerX, y: padY + i * stepY, item }));
         const mIndexById = new Map(mainline.map((it, i) => [it.id, i]));
@@ -7947,16 +8129,28 @@ function refreshRoadmapLinkDropdowns(){
           svg.appendChild(stub);
         });
 
-        function drawCard(p, side, typeInfo) {
+        function drawCard(p, side, typeInfo, opts) {
+          opts = opts || {};
           const cardH = 54;
           let labelOnLeft = side < 0;
           const edgeMargin = 6;
-          if (labelOnLeft && p.x - nodeR - cardGap - cardW < edgeMargin) labelOnLeft = false;
-          else if (!labelOnLeft && p.x + nodeR + cardGap + cardW > totalW - edgeMargin) labelOnLeft = true;
+          let w = cardW;
+          if (opts.noFlip) {
+            // Dead-end branch cards must always stay on their given side (they
+            // hang off a stub to the right of the spine) — flipping them to the
+            // left instead overlaps the mainline cards. Shrink to fit instead.
+            const available = labelOnLeft
+              ? p.x - nodeR - cardGap - edgeMargin
+              : totalW - edgeMargin - (p.x + nodeR + cardGap);
+            w = Math.max(70, Math.min(cardW, available));
+          } else {
+            if (labelOnLeft && p.x - nodeR - cardGap - cardW < edgeMargin) labelOnLeft = false;
+            else if (!labelOnLeft && p.x + nodeR + cardGap + cardW > totalW - edgeMargin) labelOnLeft = true;
+          }
           const fo = document.createElementNS(svgns, 'foreignObject');
-          fo.setAttribute('x', labelOnLeft ? p.x - nodeR - cardGap - cardW : p.x + nodeR + cardGap);
+          fo.setAttribute('x', labelOnLeft ? p.x - nodeR - cardGap - w : p.x + nodeR + cardGap);
           fo.setAttribute('y', p.y - cardH / 2);
-          fo.setAttribute('width', cardW);
+          fo.setAttribute('width', w);
           fo.setAttribute('height', cardH);
           const card = document.createElement('div');
           card.setAttribute('class', 'roadmap-node-card');
@@ -8034,7 +8228,7 @@ function refreshRoadmapLinkDropdowns(){
           iconG.setAttribute('transform', `translate(${bp.x},${bp.y}) scale(0.4) translate(-12,-12)`);
           iconG.style.pointerEvents = 'none';
           svg.appendChild(iconG);
-          drawCard(bp, 1, ROADMAP_NODE_TYPES['dead-end']);
+          drawCard(bp, 1, ROADMAP_NODE_TYPES['dead-end'], { noFlip: true });
         });
       }
 
@@ -8139,7 +8333,7 @@ window.jumpToRoadmapLinkedEntry = jumpToRoadmapLinkedEntry;
         document.getElementById('roadmap-detail-title').textContent = anchor.title;
 
         document.getElementById('roadmap-detail-meta').textContent = key === 'start' ? 'Where we began' : 'Where we are now';
-        document.getElementById('roadmap-detail-whathappened').textContent = anchor.choice || 'No summary yet. Click Edit to add one.';
+        document.getElementById('roadmap-detail-whathappened').textContent = anchor.choice || 'No summary yet — click Edit to add one.';
         document.getElementById('roadmap-detail-result').style.display = anchor.rationale ? 'block' : 'none';
         document.getElementById('roadmap-detail-result').textContent = anchor.rationale || '';
         document.getElementById('roadmap-detail-links').innerHTML = '';
@@ -8337,11 +8531,11 @@ Recap:`;
             body: JSON.stringify({ model, prompt, stream: false })
           });
         } catch (err) {
-          throw new Error('Could not reach Ollama at localhost:11434. Checklist: (1) ollama serve is running with OLLAMA_ORIGINS including this site. (2) Chrome may require granting "Local network access" for this site. Check the site info icon (🔒/ⓘ) next to the URL bar, or chrome://settings/content/localNetworkAccess.');
+          throw new Error('Could not reach Ollama at localhost:11434. Checklist: (1) ollama serve is running with OLLAMA_ORIGINS including this site, (2) Chrome may require granting "Local network access" for this site — check the site info icon (🔒/ⓘ) next to the URL bar, or chrome://settings/content/localNetworkAccess.');
         }
         if (!res.ok) throw new Error('Ollama returned an error (HTTP ' + res.status + ')');
         const data = await res.json();
-        if (!data.response) throw new Error(`Ollama returned no text for model "${model}". Check that it matches an installed model (ollama list).`);
+        if (!data.response) throw new Error(`Ollama returned no text for model "${model}" — check it matches an installed model (ollama list)`);
         return data.response;
       }
 
