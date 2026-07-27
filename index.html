@@ -360,18 +360,29 @@
 
     .ref-picker-dropdown {
       display: none;
-      position: absolute;
-      z-index: 30;
-      top: 100%;
-      left: 0;
-      right: 0;
-      margin-top: 3px;
+      position: fixed;
+      z-index: 100;
       max-height: 170px;
       overflow-y: auto;
       background: var(--bg-panel-raised);
       border: 1px solid var(--line);
       border-radius: 8px;
       box-shadow: 0 8px 20px -6px #00000055;
+      scrollbar-width: thin;
+      scrollbar-color: var(--line) transparent;
+    }
+
+    .ref-picker-dropdown::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .ref-picker-dropdown::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .ref-picker-dropdown::-webkit-scrollbar-thumb {
+      background: var(--line);
+      border-radius: 8px;
     }
 
     .ref-picker-dropdown.open { display: block; }
@@ -641,6 +652,47 @@
       padding: 12px 16px 12px;
       margin-bottom: 8px;
       position: relative;
+    }
+
+    .card-row {
+      display: flex;
+      align-items: stretch;
+      gap: 4px;
+      position: relative;
+    }
+
+    .card-row .card {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .drag-handle {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      margin-bottom: 8px;
+      color: var(--ink-faint);
+      cursor: grab;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .drag-handle:hover { color: var(--amber); }
+    .card-row.dragging .drag-handle { cursor: grabbing; }
+
+    .card-row.dragging {
+      opacity: .4;
+    }
+
+    .card-row.drag-over-top .card {
+      box-shadow: inset 0 2px 0 var(--amber);
+    }
+
+    .card-row.drag-over-bottom .card {
+      box-shadow: inset 0 -2px 0 var(--amber);
     }
 
     .entry-row {
@@ -3532,7 +3584,7 @@
       document.getElementById('app').innerHTML = `
     <div class="setup">
       <h2>One-time setup</h2>
-      <p>This log stores data in a real database (Supabase), so it works from any browser, not just inside Claude. It just needs to be pointed at your project.</p>
+      <p>This log stores data in a real database (Supabase), so it works from any browser, not just inside Claude. It just needs to be pointed at the project.</p>
       <ol>
         <li>Create a free project at <code>supabase.com</code></li>
         <li>Run the SQL in <code>schema.sql</code> (SQL Editor → New query → paste → Run)</li>
@@ -3578,7 +3630,7 @@
       <div class="setup login-screen">
         <h2>Couldn't start the app</h2>
         <p style="color:#c17a5c;">${escapeHtml(err.message || String(err))}</p>
-        <p>Open the browser console (F12) for more detail. If this mentions your Supabase URL/key, double-check the CONFIG block near the top of index.html.</p>
+        <p>Open the browser console (F12) for more detail. If this mentions the Supabase URL/key, double-check the CONFIG block near the top of index.html.</p>
         <button class="btn-add" onclick="location.reload()">Retry</button>
       </div>`;
       }
@@ -3589,7 +3641,7 @@
       document.getElementById('app').innerHTML = `
     <div class="setup login-screen">
       <h2>Sign in</h2>
-      <p>This research log is private — sign in with your project account.</p>
+      <p>This research log is private — sign in with the project account.</p>
       <div class="field-row"><div class="field"><label>Email</label><input type="email" id="login-email"></div></div>
       <div class="field-row"><div class="field"><label>Password</label><input type="password" id="login-password"></div></div>
       <div id="login-error" style="color:#c17a5c; font-size:12.5px; margin-bottom:10px;">${errorMsg ? escapeHtml(errorMsg) : ''}</div>
@@ -3696,7 +3748,6 @@
             <div class="link-multi-wrap" id="s-linked-decision-multi">
                 <div class="link-multi-row">
                   <select id="s-linked-decision"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="s-linked-decision-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="s-linked-decision-chips"></div>
               </div>
@@ -3705,7 +3756,6 @@
             <div class="link-multi-wrap" id="s-linked-session-multi">
               <div class="link-multi-row">
                 <select id="s-linked-session"><option value="">— select a session —</option></select>
-                <button type="button" class="link-multi-add" id="s-linked-session-add" aria-label="Add linked session">+</button>
               </div>
               <div class="link-multi-chips" id="s-linked-session-chips"></div>
             </div>
@@ -3714,7 +3764,6 @@
             <div class="link-multi-wrap" id="s-linked-paper-multi">
                 <div class="link-multi-row">
                   <select id="s-linked-paper"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="s-linked-paper-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="s-linked-paper-chips"></div>
               </div>
@@ -3723,7 +3772,6 @@
             <div class="link-multi-wrap" id="s-linked-account-multi">
                 <div class="link-multi-row">
                   <select id="s-linked-account"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="s-linked-account-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="s-linked-account-chips"></div>
               </div>
@@ -3732,7 +3780,6 @@
             <div class="link-multi-wrap" id="s-roadmap-linked-multi">
                 <div class="link-multi-row">
                   <select id="s-roadmap-linked"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="s-roadmap-linked-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="s-roadmap-linked-chips"></div>
               </div>
@@ -3791,7 +3838,7 @@
           <div class="field"><label>Date</label><input type="date" id="p-date"></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Why (verdict reasoning)</label><textarea id="p-reason" placeholder="Why accepted/rejected — what it does or doesn't give you"></textarea></div>
+          <div class="field"><label>Why (verdict reasoning)</label><textarea id="p-reason" placeholder="Why accepted/rejected — what it does or doesn't provide"></textarea></div>
         </div>
         <div class="field-row">
           <div class="field"><label>Tags (comma separated)</label><input type="text" id="p-tags" placeholder="e.g. dataset, SNN, baseline"></div>
@@ -3812,7 +3859,6 @@
             <div class="link-multi-wrap" id="p-linked-decision-multi">
                 <div class="link-multi-row">
                   <select id="p-linked-decision"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="p-linked-decision-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="p-linked-decision-chips"></div>
               </div>
@@ -3821,7 +3867,6 @@
             <div class="link-multi-wrap" id="p-linked-session-multi">
                 <div class="link-multi-row">
                   <select id="p-linked-session"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="p-linked-session-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="p-linked-session-chips"></div>
               </div>
@@ -3830,7 +3875,6 @@
             <div class="link-multi-wrap" id="p-linked-paper-multi">
                 <div class="link-multi-row">
                   <select id="p-linked-paper"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="p-linked-paper-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="p-linked-paper-chips"></div>
               </div>
@@ -3839,7 +3883,6 @@
             <div class="link-multi-wrap" id="p-linked-account-multi">
                 <div class="link-multi-row">
                   <select id="p-linked-account"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="p-linked-account-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="p-linked-account-chips"></div>
               </div>
@@ -3848,7 +3891,6 @@
             <div class="link-multi-wrap" id="p-roadmap-linked-multi">
                 <div class="link-multi-row">
                   <select id="p-roadmap-linked"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="p-roadmap-linked-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="p-roadmap-linked-chips"></div>
               </div>
@@ -3881,7 +3923,6 @@
             <div class="link-multi-wrap" id="d-linked-decision-multi">
                 <div class="link-multi-row">
                   <select id="d-linked-decision"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="d-linked-decision-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="d-linked-decision-chips"></div>
               </div>
@@ -3890,7 +3931,6 @@
             <div class="link-multi-wrap" id="d-linked-session-multi">
                 <div class="link-multi-row">
                   <select id="d-linked-session"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="d-linked-session-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="d-linked-session-chips"></div>
               </div>
@@ -3899,7 +3939,6 @@
             <div class="link-multi-wrap" id="d-linked-paper-multi">
                 <div class="link-multi-row">
                   <select id="d-linked-paper"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="d-linked-paper-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="d-linked-paper-chips"></div>
               </div>
@@ -3908,7 +3947,6 @@
             <div class="link-multi-wrap" id="d-linked-account-multi">
                 <div class="link-multi-row">
                   <select id="d-linked-account"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="d-linked-account-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="d-linked-account-chips"></div>
               </div>
@@ -3917,13 +3955,12 @@
             <div class="link-multi-wrap" id="d-roadmap-linked-multi">
                 <div class="link-multi-row">
                   <select id="d-roadmap-linked"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="d-roadmap-linked-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="d-roadmap-linked-chips"></div>
               </div>
           </div>
         </div>
-        <div class="field-row"><div class="field"><label>Outcome (fill in later, once you know)</label>
+        <div class="field-row"><div class="field"><label>Outcome (fill in later, once known)</label>
           <select id="d-outcome">
             <option value="">Not yet reviewed</option>
             <option value="holding">Holding up</option>
@@ -3950,7 +3987,7 @@
         <div class="field-row">
           <div class="field"><label>Why we use it</label><input type="text" id="a-reason" placeholder="e.g. hosting the DB, dataset access, submission portal"></div>
         </div>
-        <p class="warn-note">Track logins here, not passwords — this table isn't a secrets vault. Keep the actual password in your regular password manager.</p>
+        <p class="warn-note">Track logins here, not passwords — this table isn't a secrets vault. The actual password belongs in a proper password manager.</p>
         <div class="field-row">
           <div class="field"><label>Tags (comma separated)</label><input type="text" id="a-tags" placeholder="e.g. hosting, dataset-access"></div>
         </div>
@@ -3970,7 +4007,6 @@
             <div class="link-multi-wrap" id="a-linked-decision-multi">
                 <div class="link-multi-row">
                   <select id="a-linked-decision"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="a-linked-decision-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="a-linked-decision-chips"></div>
               </div>
@@ -3979,7 +4015,6 @@
             <div class="link-multi-wrap" id="a-linked-session-multi">
                 <div class="link-multi-row">
                   <select id="a-linked-session"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="a-linked-session-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="a-linked-session-chips"></div>
               </div>
@@ -3988,7 +4023,6 @@
             <div class="link-multi-wrap" id="a-linked-paper-multi">
                 <div class="link-multi-row">
                   <select id="a-linked-paper"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="a-linked-paper-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="a-linked-paper-chips"></div>
               </div>
@@ -3997,7 +4031,6 @@
             <div class="link-multi-wrap" id="a-linked-account-multi">
                 <div class="link-multi-row">
                   <select id="a-linked-account"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="a-linked-account-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="a-linked-account-chips"></div>
               </div>
@@ -4006,7 +4039,6 @@
             <div class="link-multi-wrap" id="a-roadmap-linked-multi">
                 <div class="link-multi-row">
                   <select id="a-roadmap-linked"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="a-roadmap-linked-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="a-roadmap-linked-chips"></div>
               </div>
@@ -4074,7 +4106,7 @@
       </div>
       <div class="info-item" data-highlight=".type-tab[data-type='decision']">
         <div class="info-item-icon">D</div>
-        <div class="info-item-body"><div class="info-item-title">Decisions</div><div class="info-item-desc">Real forks only: you had two genuine paths, picked one, and the why matters later. Not every fix counts.</div></div>
+        <div class="info-item-body"><div class="info-item-title">Decisions</div><div class="info-item-desc">Real forks only: two genuine paths existed, one was picked, and the why matters later. Not every fix counts.</div></div>
       </div>
       <div class="info-item" data-highlight=".type-tab[data-type='account']">
         <div class="info-item-icon">A</div>
@@ -4171,7 +4203,6 @@
                 <div class="link-multi-wrap" id="gallery-linked-roadmap-multi">
                 <div class="link-multi-row">
                   <select id="gallery-linked-roadmap"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="gallery-linked-roadmap-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="gallery-linked-roadmap-chips"></div>
               </div>
@@ -4180,7 +4211,6 @@
                 <div class="link-multi-wrap" id="gallery-linked-decision-multi">
                 <div class="link-multi-row">
                   <select id="gallery-linked-decision"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="gallery-linked-decision-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="gallery-linked-decision-chips"></div>
               </div>
@@ -4260,7 +4290,7 @@
           </div>
 
           <div id="context-panel" class="context-panel" style="display:none;">
-            <p class="context-hint">This background gets sent along with every AI summary, so it understands your actual research goal instead of guessing from bullet points alone.</p>
+            <p class="context-hint">This background gets sent along with every AI summary, so it understands the actual research goal instead of guessing from bullet points alone.</p>
             <textarea id="context-textarea" placeholder="e.g. Project goal, key terminology, dataset name, what each milestone means..."></textarea>
             <div class="recap-actions" style="padding:8px 0 0;">
               <button class="btn-add" id="context-save-btn" type="button">Save context</button>
@@ -4423,7 +4453,6 @@
               <div class="link-multi-wrap" id="roadmap-item-link-decision-input-multi">
                 <div class="link-multi-row">
                   <select id="roadmap-item-link-decision-input"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="roadmap-item-link-decision-input-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="roadmap-item-link-decision-input-chips"></div>
               </div>
@@ -4432,7 +4461,6 @@
               <div class="link-multi-wrap" id="roadmap-item-link-session-input-multi">
                 <div class="link-multi-row">
                   <select id="roadmap-item-link-session-input"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="roadmap-item-link-session-input-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="roadmap-item-link-session-input-chips"></div>
               </div>
@@ -4441,7 +4469,6 @@
               <div class="link-multi-wrap" id="roadmap-item-link-paper-input-multi">
                 <div class="link-multi-row">
                   <select id="roadmap-item-link-paper-input"><option value="">— select —</option></select>
-                  <button type="button" class="link-multi-add" id="roadmap-item-link-paper-input-add" aria-label="Add link">+</button>
                 </div>
                 <div class="link-multi-chips" id="roadmap-item-link-paper-input-chips"></div>
               </div>
@@ -4575,6 +4602,7 @@
           entries = [];
         } else {
           entries = data || [];
+          applyEntrySortOrder();
         }
         await loadProjectContext();
         loaded = true;
@@ -4594,12 +4622,22 @@
         $('#error-slot').innerHTML = `<div class="error-banner">${msg}</div>`;
       }
 
+      function setComposerTab(type) {
+        document.querySelectorAll('.type-tab').forEach(t => t.classList.toggle('active', t.dataset.type === type));
+        document.querySelectorAll('.composer-body').forEach(b => b.classList.toggle('active', b.id === 'form-' + type));
+      }
+
+      function setDashboardType(type) {
+        activeFilter = type;
+        activeVerdictFilter = 'all'; activeMilestoneFilter = 'all'; activeOutcomeFilter = 'all'; activeLinkFilter = 'all';
+        updateDashboardFilters(); updateDashFiltersBadge(); render();
+        document.getElementById('dash-type-drop').classList.remove('open');
+      }
+
       document.querySelectorAll('.type-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-          document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
-          document.querySelectorAll('.composer-body').forEach(b => b.classList.remove('active'));
-          tab.classList.add('active');
-          document.getElementById('form-' + tab.dataset.type).classList.add('active');
+          setComposerTab(tab.dataset.type);
+          setDashboardType(tab.dataset.type);
         });
       });
 
@@ -4627,9 +4665,8 @@
 
       function wireMultiLinkSelect(selectId) {
         const select = document.getElementById(selectId);
-        const addBtn = document.getElementById(selectId + '-add');
         const chipsEl = document.getElementById(selectId + '-chips');
-        if (!select || !addBtn || !chipsEl) return null; // not converted to multi-link yet
+        if (!select || !chipsEl) return null; // not converted to multi-link yet
 
         let selected = [];
         let options = [];
@@ -4658,16 +4695,17 @@
           select.innerHTML = '<option value="">— select —</option>' +
             avail.map(o => `<option value="${o.id}">${escapeHtml(o.label)}</option>`).join('');
           select.value = avail.some(o => o.id === cur) ? cur : '';
-          addBtn.disabled = !avail.length;
         }
 
-        addBtn.addEventListener('click', () => {
+        function addCurrentSelection() {
           const val = select.value;
           if (!val || selected.includes(val)) return;
           selected.push(val);
           renderChips();
           renderSelect();
-        });
+        }
+
+        select.addEventListener('change', addCurrentSelection);
 
         const controller = {
           setOptions(opts) { options = opts || []; renderSelect(); },
@@ -4766,8 +4804,23 @@
           }
         });
 
+        function resetPanel() {
+          enableCb.checked = false;
+          panel.style.display = 'none';
+          entryChips.forEach(c => { if (c.cb) c.cb.checked = false; });
+          if (entryWrap) entryWrap.style.display = 'none';
+          if (entrySelect) entrySelect.value = '';
+          dedicatedChips.forEach(d => {
+            if (d.cb) d.cb.checked = false;
+            if (d.wrap) d.wrap.style.display = 'none';
+            if (d.multi) d.multi.reset();
+            else if (d.select) d.select.value = '';
+          });
+        }
+
         return {
           refreshEntryOptions,
+          reset: resetPanel,
           // Populate panel state from a saved entry/item. linkedId = single-select linked_id.
           // dedicatedValues = { type: id } for dedicated columns (e.g. roadmap's decision/session/paper).
           setState(linkedId, dedicatedValues) {
@@ -4833,6 +4886,25 @@
           });
         }
 
+        function positionDropdown() {
+          const rect = inputEl.getBoundingClientRect();
+          const margin = 6;
+          const spaceBelow = window.innerHeight - rect.bottom - margin;
+          const spaceAbove = rect.top - margin;
+          const openUpward = spaceBelow < 100 && spaceAbove > spaceBelow;
+          dropEl.style.left = rect.left + 'px';
+          dropEl.style.width = rect.width + 'px';
+          if (openUpward) {
+            dropEl.style.top = '';
+            dropEl.style.bottom = (window.innerHeight - rect.top + 3) + 'px';
+            dropEl.style.maxHeight = Math.max(80, Math.min(170, spaceAbove)) + 'px';
+          } else {
+            dropEl.style.bottom = '';
+            dropEl.style.top = (rect.bottom + 3) + 'px';
+            dropEl.style.maxHeight = Math.max(80, Math.min(170, spaceBelow)) + 'px';
+          }
+        }
+
         function renderDropdown(query) {
           const q = (query || '').toLowerCase();
           const all = getOptions().filter(o => !selected.includes(o.id));
@@ -4840,11 +4912,13 @@
           if (!opts.length) {
             dropEl.innerHTML = `<div class="ref-picker-empty">${all.length ? 'No matches' : 'Nothing to link yet'}</div>`;
             dropEl.classList.add('open');
+            positionDropdown();
             return;
           }
           dropEl.innerHTML = opts.map(o => `<div class="ref-picker-option" data-id="${o.id}">${escapeHtml(o.label)}</div>`).join('');
           dropEl.classList.add('open');
-          dropEl.querySelectorAll('.ref-picker-option').forEach(el => {
+          positionDropdown();
+          dropEl.querySelectorAll('.ref-picker-option[data-id]').forEach(el => {
             el.addEventListener('mousedown', (ev) => {
               ev.preventDefault();
               selected.push(el.dataset.id);
@@ -4855,6 +4929,9 @@
             });
           });
         }
+
+        window.addEventListener('scroll', () => { if (dropEl.classList.contains('open')) positionDropdown(); }, true);
+        window.addEventListener('resize', () => { if (dropEl.classList.contains('open')) positionDropdown(); });
 
         inputEl.addEventListener('input', () => renderDropdown(inputEl.value));
         inputEl.addEventListener('focus', () => renderDropdown(inputEl.value));
@@ -5167,7 +5244,7 @@ $('#s-next').addEventListener('input', scanSessionLinks);
         svg.attr('viewBox', `0 0 ${width} ${height}`);
 
         if (entries.length === 0) {
-          d3.select('#graph-svg-wrap').append('div').attr('class', 'graph-empty').text('Nothing logged yet — the graph fills in as you add sessions, papers, and decisions.');
+          d3.select('#graph-svg-wrap').append('div').attr('class', 'graph-empty').text('Nothing logged yet — the graph fills in as sessions, papers, and decisions are added.');
           return;
         }
 
@@ -5254,9 +5331,8 @@ $('#s-next').addEventListener('input', scanSessionLinks);
       }
 
       document.querySelectorAll('input[name="dash-type"]').forEach(input => input.addEventListener('change', (e) => {
-        activeFilter = e.target.value;
-        activeVerdictFilter = 'all'; activeMilestoneFilter = 'all'; activeOutcomeFilter = 'all'; activeLinkFilter = 'all';
-        updateDashboardFilters(); updateDashFiltersBadge(); render(); document.getElementById('dash-type-drop').classList.remove('open');
+        setDashboardType(e.target.value);
+        setComposerTab(e.target.value);
       }));
       document.getElementById('dash-filters-toggle').addEventListener('click', () => { document.getElementById('dash-filters-drawer').classList.add('open'); document.getElementById('dash-filters-backdrop').classList.add('open'); });
       const closeDashFilters = () => { document.getElementById('dash-filters-drawer').classList.remove('open'); document.getElementById('dash-filters-backdrop').classList.remove('open'); };
@@ -5485,13 +5561,8 @@ $('#s-next').addEventListener('input', scanSessionLinks);
             }
           }
           document.querySelectorAll('#form-' + type + ' input[type=text], #form-' + type + ' input[type=number], #form-' + type + ' input[type=time], #form-' + type + ' textarea').forEach(el => el.value = '');
-          document.querySelectorAll('#form-' + type + ' .link-panel select').forEach(el => el.value = '');
-          document.querySelectorAll('#form-' + type + ' .link-type-chips input[type=checkbox]').forEach(el => el.checked = false);
-          document.querySelectorAll('#form-' + type + ' .link-type-select-wrap').forEach(el => el.style.display = 'none');
-          const linkEnableCb = document.getElementById(type[0] + '-link-enable');
-          if (linkEnableCb) linkEnableCb.checked = false;
-          const linkPanelEl = document.getElementById(type[0] + '-link-panel');
-          if (linkPanelEl) linkPanelEl.style.display = 'none';
+          const linkPanelForType = { session: sLinkPanel, paper: pLinkPanel, decision: dLinkPanel, account: aLinkPanel }[type];
+          if (linkPanelForType) linkPanelForType.reset();
           if (type === 'session') { sDecisionPicker.reset(); sRoadmapPicker.reset(); }
           
           if (type === 'decision') $('#d-outcome').value = '';
@@ -5826,25 +5897,152 @@ $('#s-next').addEventListener('input', scanSessionLinks);
         return '';
       }
 
+      // Keeps entries date-desc grouped, but within a day, entries that have an
+      // explicit sort_order (set via drag-and-drop) are ordered by it; entries
+      // without one keep falling back to the original created_at-desc order.
+      // Works fine even if the sort_order column doesn't exist yet on someone's
+      // table (undefined behaves like null here) — reordering just won't persist
+      // until the column is added.
+      function applyEntrySortOrder() {
+        entries.sort((a, b) => {
+          const ad = a.date || '', bd = b.date || '';
+          if (ad !== bd) return bd.localeCompare(ad);
+          const ao = a.sort_order, bo = b.sort_order;
+          if (ao != null && bo != null) return ao - bo;
+          if (ao != null) return -1;
+          if (bo != null) return 1;
+          return (b.created_at || '').localeCompare(a.created_at || '');
+        });
+      }
+
+      let dragPointer = null; // { id, dayGroupEl, rowEl, pointerId, targetId, before }
+
+      function clearDragIndicators() {
+        document.querySelectorAll('.card-row.drag-over-top, .card-row.drag-over-bottom')
+          .forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+      }
+
+      function endPointerDrag(commit) {
+        if (!dragPointer) return;
+        const { rowEl, dayGroupEl, id, targetId, before } = dragPointer;
+        rowEl.classList.remove('dragging');
+        clearDragIndicators();
+        dragPointer = null;
+        if (commit && targetId && targetId !== id) {
+          reorderWithinDay(dayGroupEl, id, targetId, before);
+        }
+      }
+
+      timeline.addEventListener('pointerdown', (e) => {
+        const handle = e.target.closest('.drag-handle');
+        if (!handle) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        const row = handle.closest('.card-row');
+        const dayGroupEl = row && row.closest('.day-group');
+        if (!row || !dayGroupEl) return;
+        e.preventDefault();
+        dragPointer = { id: row.dataset.entryId, dayGroupEl, rowEl: row, pointerId: e.pointerId, targetId: null, before: true };
+        row.classList.add('dragging');
+        try { handle.setPointerCapture(e.pointerId); } catch (err) { }
+      });
+
+      document.addEventListener('pointermove', (e) => {
+        if (!dragPointer || e.pointerId !== dragPointer.pointerId) return;
+        e.preventDefault();
+        const { dayGroupEl, rowEl } = dragPointer;
+        const rows = [...dayGroupEl.querySelectorAll(':scope > .card-row')].filter(r => r !== rowEl);
+        clearDragIndicators();
+        dragPointer.targetId = null;
+        for (const r of rows) {
+          const rect = r.getBoundingClientRect();
+          const mid = rect.top + rect.height / 2;
+          if (e.clientY < mid) {
+            r.classList.add('drag-over-top');
+            dragPointer.targetId = r.dataset.entryId;
+            dragPointer.before = true;
+            break;
+          }
+          dragPointer.targetId = r.dataset.entryId;
+          dragPointer.before = false;
+        }
+        if (dragPointer.targetId && !dragPointer.before) {
+          const el = rows.find(r => r.dataset.entryId === dragPointer.targetId);
+          if (el) el.classList.add('drag-over-bottom');
+        }
+      });
+
+      document.addEventListener('pointerup', (e) => {
+        if (!dragPointer || e.pointerId !== dragPointer.pointerId) return;
+        endPointerDrag(true);
+      });
+
+      document.addEventListener('pointercancel', (e) => {
+        if (!dragPointer || e.pointerId !== dragPointer.pointerId) return;
+        endPointerDrag(false);
+      });
+
+      // Reads the current visual order of cards within one day-group, moves the
+      // dragged one to its new spot, assigns fresh sequential sort_order values
+      // (10, 20, 30…) to just that group, re-renders immediately, then persists.
+      async function reorderWithinDay(dayGroupEl, draggedId, targetId, before) {
+        const rows = [...dayGroupEl.querySelectorAll(':scope > .card-row')];
+        const ids = rows.map(r => r.dataset.entryId);
+        const fromIdx = ids.indexOf(draggedId);
+        if (fromIdx === -1) return;
+        ids.splice(fromIdx, 1);
+        let toIdx = ids.indexOf(targetId);
+        if (toIdx === -1) toIdx = ids.length;
+        else if (!before) toIdx += 1;
+        ids.splice(toIdx, 0, draggedId);
+
+        const orderFor = {};
+        ids.forEach((id, i) => { orderFor[id] = (i + 1) * 10; });
+        ids.forEach(id => {
+          const en = entries.find(x => x.id === id);
+          if (en) en.sort_order = orderFor[id];
+        });
+        applyEntrySortOrder();
+        render();
+
+        try {
+          const results = await Promise.all(ids.map(id =>
+            supabaseClient.from('entries').update({ sort_order: orderFor[id] }).eq('id', id)
+          ));
+          const failed = results.find(r => r.error);
+          if (failed) showError('Could not save new order: ' + failed.error.message + ' — a "sort_order" (integer, nullable) column may need to be added to the entries table in Supabase.');
+        } catch (err) {
+          showError('Could not save new order: ' + err.message);
+        }
+      }
+
       function cardHtml(e, isExpanded) {
         const verdictClass = e.type === 'paper' ? `verdict-${e.verdict || 'none'}` : '';
         return `
-    <div class="card ${verdictClass}" data-entry-id="${e.id}">
-      <div class="entry-row" onclick="toggleExpand('${e.id}')">
-        <span class="chevron">${isExpanded ? '▾' : '▸'}</span>
-        <div class="entry-row-main">
-          ${entryStampHtml(e)}
-          <span class="entry-row-title">${entryRowTitleHtml(e)}</span>
-        </div>
-        <div class="entry-row-actions" onclick="event.stopPropagation()">
-          
-          <button class="delete-btn" onclick="editEntry('${e.id}')" aria-label="Edit entry">✎</button>
-                    <button class="delete-btn" onclick="deleteEntry('${e.id}')" aria-label="Delete entry">🗑</button>
-          ${isExpanded ? `<button class="delete-btn" onclick="toggleExpand('${e.id}')" aria-label="Close entry">×</button>` : ''}
+    <div class="card-row" data-entry-id="${e.id}">
+      <span class="drag-handle" title="Drag to reorder" aria-label="Drag to reorder">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">
+          <circle cx="2.5" cy="2.5" r="1.6"/><circle cx="7.5" cy="2.5" r="1.6"/>
+          <circle cx="2.5" cy="8" r="1.6"/><circle cx="7.5" cy="8" r="1.6"/>
+          <circle cx="2.5" cy="13.5" r="1.6"/><circle cx="7.5" cy="13.5" r="1.6"/>
+        </svg>
+      </span>
+      <div class="card ${verdictClass}">
+        <div class="entry-row" onclick="toggleExpand('${e.id}')">
+          <span class="chevron">${isExpanded ? '▾' : '▸'}</span>
+          <div class="entry-row-main">
+            ${entryStampHtml(e)}
+            <span class="entry-row-title">${entryRowTitleHtml(e)}</span>
+          </div>
+          <div class="entry-row-actions" onclick="event.stopPropagation()">
+            
+            <button class="delete-btn" onclick="editEntry('${e.id}')" aria-label="Edit entry">✎</button>
+                      <button class="delete-btn" onclick="deleteEntry('${e.id}')" aria-label="Delete entry">🗑</button>
+            ${isExpanded ? `<button class="delete-btn" onclick="toggleExpand('${e.id}')" aria-label="Close entry">×</button>` : ''}
 
+          </div>
         </div>
+        ${isExpanded ? `<div class="entry-detail">${entryDetailHtml(e)}</div>` : ''}
       </div>
-      ${isExpanded ? `<div class="entry-detail">${entryDetailHtml(e)}</div>` : ''}
     </div>`;
       }
 
@@ -7814,11 +8012,11 @@ Recap:`;
             body: JSON.stringify({ model, prompt, stream: false })
           });
         } catch (err) {
-          throw new Error('Could not reach Ollama at localhost:11434. Checklist: (1) ollama serve is running with OLLAMA_ORIGINS including this site, (2) Chrome may need you to grant "Local network access" for this site — check the site info icon (🔒/ⓘ) next to the URL bar, or chrome://settings/content/localNetworkAccess.');
+          throw new Error('Could not reach Ollama at localhost:11434. Checklist: (1) ollama serve is running with OLLAMA_ORIGINS including this site, (2) Chrome may require granting "Local network access" for this site — check the site info icon (🔒/ⓘ) next to the URL bar, or chrome://settings/content/localNetworkAccess.');
         }
         if (!res.ok) throw new Error('Ollama returned an error (HTTP ' + res.status + ')');
         const data = await res.json();
-        if (!data.response) throw new Error(`Ollama returned no text for model "${model}" — check it matches what you pulled (ollama list)`);
+        if (!data.response) throw new Error(`Ollama returned no text for model "${model}" — check it matches an installed model (ollama list)`);
         return data.response;
       }
 
@@ -7877,6 +8075,7 @@ document.getElementById('gallery-caption-modal-input').addEventListener('keydown
 
 
       loadEntries();
+      loadRoadmap();
       loadPendingCalendarEvents();
     }
   </script>
