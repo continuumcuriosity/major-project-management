@@ -4043,6 +4043,22 @@
       console.error('Supabase client is null, cannot proceed');
     }
 
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateThemeBtnLabel();
+    }
+
+    function updateThemeBtnLabel() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const btn = document.getElementById('theme-toggle-btn');
+      if (btn) btn.textContent = current === 'dark' ? '☾ Dark' : '☀ Light';
+    }
+
+    document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+
     async function checkAuthAndStart() {
       console.log('checkAuthAndStart called');
       try {
@@ -4112,20 +4128,7 @@
         if (e.key === 'Enter') submit();
       });
       
-      // Theme toggle on login screen
-      document.getElementById('theme-toggle-btn').addEventListener('click', () => {
-        const current = document.documentElement.getAttribute('data-theme') || 'dark';
-        const next = current === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
-        updateThemeBtnLabel();
-      });
-      
-      function updateThemeBtnLabel() {
-        const current = document.documentElement.getAttribute('data-theme') || 'dark';
-        const btn = document.getElementById('theme-toggle-btn');
-        if (btn) btn.textContent = current === 'dark' ? '☾ Dark' : '☀ Light';
-      }
+
     }
 
     function escapeHtml(s) {
@@ -4987,19 +4990,7 @@
     updateThemeBtnLabel();
   })();
 
-  document.getElementById('theme-toggle-btn').addEventListener('click', () => {
-    const current = document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
-    updateThemeBtnLabel();
-  });
 
-  function updateThemeBtnLabel() {
-    const current = document.documentElement.getAttribute('data-theme') || 'dark';
-    const btn = document.getElementById('theme-toggle-btn');
-    if (btn) btn.textContent = current === 'dark' ? '☾ Dark' : '☀ Light';
-  }
 
       let entries = [];
       let activeFilter = 'session';
